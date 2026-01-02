@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FlexQL — Safe Query Infrastructure</title>
+    <meta
+      name="description"
+      content="FlexQL is a compiler-style, injection-safe query language engine for APIs, dashboards, and SaaS platforms."
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #0b0d12;
+        --card: #151823;
+        --text: #e5e7eb;
+        --muted: #9ca3af;
+        --primary: #6366f1;
+        --accent: #22d3ee;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: Inter, system-ui, sans-serif;
+        background: radial-gradient(
+            1200px 600px at 10% -10%,
+            #1f2340,
+            transparent
+          ),
+          var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      header {
+        max-width: 1100px;
+        margin: auto;
+        padding: 90px 24px 60px;
+        text-align: center;
+      }
+
+      header h1 {
+        font-size: clamp(2.6rem, 5vw, 3.6rem);
+        font-weight: 800;
+        margin-bottom: 18px;
+      }
+
+      header p {
+        font-size: 1.15rem;
+        color: var(--muted);
+        max-width: 760px;
+        margin: 0 auto 36px;
+      }
+
+      .cta {
+        display: inline-flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .btn {
+        padding: 14px 24px;
+        border-radius: 12px;
+        font-weight: 600;
+        background: var(--primary);
+        color: white;
+        box-shadow: 0 10px 30px rgba(99, 102, 241, 0.35);
+      }
+
+      .btn.secondary {
+        background: transparent;
+        border: 1px solid #2a2f45;
+        color: var(--text);
+        box-shadow: none;
+      }
+
+      section {
+        max-width: 1100px;
+        margin: auto;
+        padding: 70px 24px;
+      }
+
+      h2 {
+        font-size: 2rem;
+        margin-bottom: 12px;
+      }
+
+      .section-desc {
+        color: var(--muted);
+        max-width: 780px;
+        margin-bottom: 36px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 24px;
+      }
+
+      .card {
+        background: linear-gradient(180deg, #171a2a, var(--card));
+        border: 1px solid #232741;
+        border-radius: 20px;
+        padding: 26px;
+      }
+
+      .card h3 {
+        margin-top: 0;
+        margin-bottom: 8px;
+      }
+
+      pre {
+        background: #0f1220;
+        border: 1px solid #22264a;
+        border-radius: 16px;
+        padding: 20px;
+        overflow-x: auto;
+        color: #c7d2fe;
+      }
+
+      .diagram {
+        font-family: monospace;
+        text-align: center;
+        color: var(--accent);
+      }
+
+      footer {
+        border-top: 1px solid #1f2338;
+        padding: 40px 24px;
+        text-align: center;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>FlexQL</h1>
+      <p>
+        <strong>Infrastructure for safe, dynamic data filtering.</strong><br />
+        FlexQL is a compiler-style query engine that converts untrusted filter
+        input into validated, injection-safe database queries — powering APIs,
+        dashboards, and SaaS platforms at scale.
+      </p>
+      <div class="cta">
+        <a class="btn" href="#">View on GitHub</a>
+      </div>
+    </header>
+
+    <section>
+      <h2>Why FlexQL?</h2>
+      <p class="section-desc">
+        Modern applications need powerful filtering — but exposing SQL or
+        complex ORM logic introduces security risks, tight coupling, and
+        long-term maintenance costs. FlexQL provides a single, safe query
+        language that compiles into multiple backends without locking your API
+        to a database.
+      </p>
+
+      <div class="grid">
+        <div class="card">
+          <h3>🧠 Human-Readable</h3>
+          <p>
+            Queries remain understandable even as complexity grows. No nested
+            JSON. No unreadable SQL strings.
+          </p>
+        </div>
+        <div class="card">
+          <h3>🔒 Injection-Safe</h3>
+          <p>
+            All values are validated and parameterized. FlexQL never
+            concatenates raw user input.
+          </p>
+        </div>
+        <div class="card">
+          <h3>🌍 Adapter-Based</h3>
+          <p>
+            Compile once, target many systems: SQL, Sequelize, and soon MongoDB
+            & Elasticsearch.
+          </p>
+        </div>
+        <div class="card">
+          <h3>🧱 Real Query Engine</h3>
+          <p>
+            Lexer → Parser → AST → Adapter. FlexQL understands logic,
+            precedence, and structure.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Why Now?</h2>
+      <p class="section-desc">
+        APIs are becoming more flexible and user-driven, while security and
+        backend complexity continue to increase. Teams need a way to accept
+        dynamic queries without sacrificing safety, performance, or portability.
+      </p>
+    </section>
+
+    <section>
+      <h2>From Text to Logic</h2>
+      <p class="section-desc">
+        A single string expresses complex logic with clear AND / OR semantics.
+      </p>
+      <pre>username==heja;age>18,status==active</pre>
+      <p class="section-desc">Interpreted as:</p>
+      <pre>
+(username == "heja" AND age > 18)
+OR
+(status == "active")</pre
+      >
+    </section>
+
+    <section>
+      <h2>How It Works</h2>
+      <p style="color: var(--muted); max-width: 780px">
+        FlexQL operates as a
+        <strong>deterministic compilation pipeline</strong>. Untrusted input is
+        never executed directly. Instead, it is parsed, validated, and
+        transformed into a structured representation before being compiled into
+        backend‑specific queries. This makes FlexQL predictable, secure, and
+        portable by design.
+      </p>
+
+      <div class="grid">
+        <div class="card">
+          <h3>1️⃣ Lexing — Normalize Input</h3>
+          <p>
+            The lexer converts the raw query string into a strict stream of
+            tokens (identifiers, operators, values, and logical separators).
+          </p>
+          <p style="color: var(--muted)">
+            Any invalid characters, unsupported operators, or malformed values
+            are rejected immediately.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>2️⃣ Parsing — Build Intent</h3>
+          <p>
+            The parser validates token order and constructs an
+            <strong>N‑ary Abstract Syntax Tree (AST)</strong>
+            that represents the logical intent of the query.
+          </p>
+          <p style="color: var(--muted)">
+            Logical precedence is enforced consistently: AND (;) binds tighter
+            than OR (,).
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>3️⃣ Adapting — Compile Output</h3>
+          <p>
+            Adapters walk the AST and compile it into backend‑specific query
+            structures such as parameterized SQL or ORM condition objects.
+          </p>
+          <p style="color: var(--muted)">
+            Values are always bound as parameters — FlexQL never emits raw
+            executable strings.
+          </p>
+        </div>
+      </div>
+
+      <div style="margin-top: 40px; display: flex; justify-content: center">
+        <svg
+          width="760"
+          height="180"
+          viewBox="0 0 760 180"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <defs>
+            <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#6366f1" />
+              <stop offset="100%" stop-color="#22d3ee" />
+            </linearGradient>
+          </defs>
+
+          <!-- Boxes -->
+          <rect
+            x="20"
+            y="50"
+            rx="16"
+            ry="16"
+            width="200"
+            height="80"
+            fill="#151823"
+            stroke="#2a2f45"
+          />
+          <rect
+            x="280"
+            y="50"
+            rx="16"
+            ry="16"
+            width="200"
+            height="80"
+            fill="#151823"
+            stroke="#2a2f45"
+          />
+          <rect
+            x="540"
+            y="50"
+            rx="16"
+            ry="16"
+            width="200"
+            height="80"
+            fill="#151823"
+            stroke="#2a2f45"
+          />
+
+          <!-- Arrows -->
+          <line
+            x1="220"
+            y1="90"
+            x2="280"
+            y2="90"
+            stroke="url(#g1)"
+            stroke-width="2"
+          />
+          <line
+            x1="480"
+            y1="90"
+            x2="540"
+            y2="90"
+            stroke="url(#g1)"
+            stroke-width="2"
+          />
+
+          <!-- Arrow heads -->
+          <polygon points="280,90 270,85 270,95" fill="#22d3ee" />
+          <polygon points="540,90 530,85 530,95" fill="#22d3ee" />
+
+          <!-- Text -->
+          <text
+            x="120"
+            y="85"
+            fill="#e5e7eb"
+            font-size="14"
+            font-weight="600"
+            text-anchor="middle"
+          >
+            Lexer
+          </text>
+          <text
+            x="120"
+            y="105"
+            fill="#9ca3af"
+            font-size="12"
+            text-anchor="middle"
+          >
+            Normalize input
+          </text>
+
+          <text
+            x="380"
+            y="85"
+            fill="#e5e7eb"
+            font-size="14"
+            font-weight="600"
+            text-anchor="middle"
+          >
+            Parser
+          </text>
+          <text
+            x="380"
+            y="105"
+            fill="#9ca3af"
+            font-size="12"
+            text-anchor="middle"
+          >
+            Build AST
+          </text>
+
+          <text
+            x="640"
+            y="85"
+            fill="#e5e7eb"
+            font-size="14"
+            font-weight="600"
+            text-anchor="middle"
+          >
+            Adapters
+          </text>
+          <text
+            x="640"
+            y="105"
+            fill="#9ca3af"
+            font-size="12"
+            text-anchor="middle"
+          >
+            Compile output
+          </text>
+
+          <!-- Caption -->
+          <text
+            x="380"
+            y="160"
+            fill="#9ca3af"
+            font-size="12"
+            text-anchor="middle"
+          >
+            Deterministic pipeline → validated AST → injection-safe queries
+          </text>
+        </svg>
+      </div>
+    </section>
+
+    <section>
+      <h2>Live Playground Preview</h2>
+      <p class="section-desc">
+        A preview of how FlexQL compiles one query into multiple backend
+        formats. (Read-only demo — real compiler coming soon)
+      </p>
+
+      <div class="playground">
+        <!-- Input -->
+        <div class="pg-panel">
+          <div class="pg-header">FlexQL Input</div>
+          <pre class="pg-input" aria-readonly="true">
+username==heja;age>18,status==active
+      </pre
+          >
+        </div>
+
+        <!-- Output -->
+        <div class="pg-panel">
+          <div class="pg-header">
+            Compiled Output
+            <div class="pg-tabs">
+              <button class="pg-tab active" data-target="sql">SQL</button>
+              <button class="pg-tab" data-target="sequelize">Sequelize</button>
+              <button class="pg-tab" data-target="mongo">MongoDB</button>
+            </div>
+          </div>
+
+          <pre id="pg-output"></pre>
+        </div>
+      </div>
+    </section>
+
+    <style>
+      /* Playground layout */
+      .playground {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+      }
+
+      .pg-panel {
+        background: linear-gradient(180deg, #171a2a, #151823);
+        border: 1px solid #232741;
+        border-radius: 20px;
+        padding: 20px;
+      }
+
+      .pg-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-weight: 600;
+        margin-bottom: 12px;
+      }
+
+      /* Read-only input */
+      .pg-input {
+        background: #0f1220;
+        border: 1px solid #22264a;
+        border-radius: 14px;
+        padding: 18px;
+        color: #c7d2fe;
+        font-family: monospace;
+        cursor: default;
+        user-select: text;
+      }
+
+      /* Output */
+      #pg-output {
+        background: #0f1220;
+        border: 1px solid #22264a;
+        border-radius: 14px;
+        padding: 18px;
+        color: #e0e7ff;
+        font-family: monospace;
+        min-height: 180px;
+      }
+
+      /* Tabs */
+      .pg-tabs {
+        display: flex;
+        gap: 8px;
+      }
+
+      .pg-tab {
+        padding: 6px 12px;
+        border-radius: 10px;
+        border: 1px solid #2a2f45;
+        background: transparent;
+        color: #9ca3af;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.25s ease;
+      }
+
+      .pg-tab:hover {
+        color: #fff;
+        border-color: #6366f1;
+        box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.3);
+      }
+
+      .pg-tab.active {
+        background: #6366f1;
+        color: white;
+        border-color: #6366f1;
+        box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
+      }
+
+      /* Responsive */
+      @media (max-width: 900px) {
+        .playground {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+
+    <script>
+      const outputMap = {
+        sql: `{
+  type: "sql",
+  payload: {
+    conditions: "WHERE username = ? AND age > ? OR status = ?",
+    values: ["heja", 18, "active"]
+  }
+}`,
+
+        sequelize: `{
+  type: "sequelize",
+  where: {
+    [Op.or]: [
+      {
+        username: "heja",
+        age: { [Op.gt]: 18 }
+      },
+      {
+        status: "active"
+      }
+    ]
+  }
+}`,
+
+        mongo: `{
+  type: "mongodb",
+  $or: [
+    { username: "heja", age: { $gt: 18 } },
+    { status: "active" }
+  ]
+}`,
+      };
+
+      const tabs = document.querySelectorAll(".pg-tab");
+      const output = document.getElementById("pg-output");
+
+      function setActive(tab) {
+        tabs.forEach((t) => t.classList.remove("active"));
+        tab.classList.add("active");
+        output.textContent = outputMap[tab.dataset.target];
+      }
+
+      tabs.forEach((tab) => {
+        tab.addEventListener("click", () => setActive(tab));
+      });
+
+      // init
+      output.textContent = outputMap.sql;
+    </script>
+
+    <section>
+      <h2>Designed for Real-World Systems</h2>
+      <div class="grid">
+        <div class="card">
+          <strong>Admin Dashboards</strong><br />Advanced user-defined filters
+          without exposing SQL.
+        </div>
+        <div class="card">
+          <strong>Public APIs</strong><br />Safely accept dynamic filtering via
+          query parameters.
+        </div>
+        <div class="card">
+          <strong>Multi-ORM Backends</strong><br />One filter language across
+          multiple databases.
+        </div>
+        <div class="card">
+          <strong>Rule Engines</strong><br />Store and execute logical rules as
+          readable strings.
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Long-Term Vision</h2>
+      <p class="section-desc">
+        FlexQL aims to become the standard query language for user-defined
+        filtering across APIs and data platforms — similar to how SQL
+        standardized relational querying, but designed for modern application
+        architectures.
+      </p>
+    </section>
+
+    <section>
+      <h2>Product Roadmap</h2>
+      <ul>
+        <li>✅ Core language & SQL / Sequelize adapters</li>
+        <li>⬜ MongoDB adapter</li>
+        <li>⬜ Elasticsearch adapter</li>
+        <li>⬜ Parenthesis & nested expressions</li>
+        <li>⬜ Type inference & schema validation</li>
+        <li>⬜ Interactive FlexQL Playground</li>
+      </ul>
+    </section>
+
+    <footer>
+      <p>MIT © 2025 — Built by Heja Arslan, Backend Engineer</p>
+    </footer>
+  </body>
+</html>
