@@ -1,639 +1,1238 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FlexQL — Safe Query Infrastructure</title>
-    <meta
-      name="description"
-      content="FlexQL is a compiler-style, injection-safe query language engine for APIs, dashboards, and SaaS platforms."
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap"
-      rel="stylesheet"
-    />
-    <style>
-      :root {
-        --bg: #0b0d12;
-        --card: #151823;
-        --text: #e5e7eb;
-        --muted: #9ca3af;
-        --primary: #6366f1;
-        --accent: #22d3ee;
-      }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FlexQL — Safe Query Infrastructure</title>
+  <meta name="description" content="FlexQL is a compiler-style, injection-safe query language engine for APIs, dashboards, and SaaS platforms." />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
 
-      * {
-        box-sizing: border-box;
-      }
+  <style>
+    :root {
+      --bg: #060810;
+      --surface: #0d1018;
+      --card: #111520;
+      --border: #1c2035;
+      --text: #e2e8f0;
+      --muted: #6b7591;
+      --dim: #3d4560;
+      --primary: #5a67f2;
+      --primary-glow: rgba(90, 103, 242, 0.25);
+      --cyan: #00e5cc;
+      --cyan-glow: rgba(0, 229, 204, 0.15);
+      --amber: #f5a623;
+      --green: #22c55e;
+      --mono: 'Space Mono', monospace;
+      --sans: 'Syne', sans-serif;
+    }
 
-      body {
-        margin: 0;
-        font-family: Inter, system-ui, sans-serif;
-        background: radial-gradient(
-            1200px 600px at 10% -10%,
-            #1f2340,
-            transparent
-          ),
-          var(--bg);
-        color: var(--text);
-        line-height: 1.6;
-      }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-      a {
-        color: inherit;
-        text-decoration: none;
-      }
+    html { scroll-behavior: smooth; }
 
-      header {
-        max-width: 1100px;
-        margin: auto;
-        padding: 90px 24px 60px;
-        text-align: center;
-      }
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      overflow-x: hidden;
+    }
 
-      header h1 {
-        font-size: clamp(2.6rem, 5vw, 3.6rem);
-        font-weight: 800;
-        margin-bottom: 18px;
-      }
+    /* ── NOISE OVERLAY ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.5;
+    }
 
-      header p {
-        font-size: 1.15rem;
-        color: var(--muted);
-        max-width: 760px;
-        margin: 0 auto 36px;
-      }
+    a { color: inherit; text-decoration: none; }
 
-      .cta {
-        display: inline-flex;
-        gap: 16px;
-        flex-wrap: wrap;
-        justify-content: center;
-      }
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 48px;
+      background: rgba(6, 8, 16, 0.75);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+    }
 
-      .btn {
-        padding: 14px 24px;
-        border-radius: 12px;
-        font-weight: 600;
-        background: var(--primary);
-        color: white;
-        box-shadow: 0 10px 30px rgba(99, 102, 241, 0.35);
-      }
+    .nav-logo {
+      font-family: var(--mono);
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--cyan);
+      letter-spacing: -0.02em;
+    }
 
-      .btn.secondary {
-        background: transparent;
-        border: 1px solid #2a2f45;
-        color: var(--text);
-        box-shadow: none;
-      }
+    .nav-links {
+      display: flex;
+      gap: 32px;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
 
-      section {
-        max-width: 1100px;
-        margin: auto;
-        padding: 70px 24px;
-      }
+    .nav-links a:hover { color: var(--text); }
 
-      h2 {
-        font-size: 2rem;
-        margin-bottom: 12px;
-      }
+    .nav-cta {
+      padding: 8px 18px;
+      border-radius: 8px;
+      background: var(--primary);
+      color: white;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      transition: box-shadow 0.2s;
+    }
 
-      .section-desc {
-        color: var(--muted);
-        max-width: 780px;
-        margin-bottom: 36px;
-      }
+    .nav-cta:hover { box-shadow: 0 0 24px var(--primary-glow); }
 
-      .grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-        gap: 24px;
-      }
+    /* ── HERO ── */
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 120px 24px 80px;
+      overflow: hidden;
+    }
 
-      .card {
-        background: linear-gradient(180deg, #171a2a, var(--card));
-        border: 1px solid #232741;
-        border-radius: 20px;
-        padding: 26px;
-      }
+    .hero-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse 80% 60% at 50% 50%, black 30%, transparent 100%);
+      opacity: 0.35;
+    }
 
-      .card h3 {
-        margin-top: 0;
-        margin-bottom: 8px;
-      }
+    .hero-glow {
+      position: absolute;
+      width: 700px; height: 400px;
+      background: radial-gradient(ellipse, rgba(90,103,242,0.18) 0%, transparent 70%);
+      top: 20%; left: 50%;
+      transform: translateX(-50%);
+      pointer-events: none;
+    }
 
-      pre {
-        background: #0f1220;
-        border: 1px solid #22264a;
-        border-radius: 16px;
-        padding: 20px;
-        overflow-x: auto;
-        color: #c7d2fe;
-      }
+    .hero-glow-2 {
+      position: absolute;
+      width: 500px; height: 300px;
+      background: radial-gradient(ellipse, rgba(0,229,204,0.10) 0%, transparent 70%);
+      top: 45%; left: 55%;
+      pointer-events: none;
+    }
 
-      .diagram {
-        font-family: monospace;
-        text-align: center;
-        color: var(--accent);
-      }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: rgba(0, 229, 204, 0.07);
+      border: 1px solid rgba(0, 229, 204, 0.2);
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--cyan);
+      margin-bottom: 28px;
+      letter-spacing: 0.05em;
+      animation: fadeDown 0.6s ease both;
+    }
 
-      footer {
-        border-top: 1px solid #1f2338;
-        padding: 40px 24px;
-        text-align: center;
-        color: var(--muted);
-      }
-    </style>
-  </head>
-  <body>
-    <header>
-      <h1>FlexQL</h1>
-      <p>
-        <strong>Infrastructure for safe, dynamic data filtering.</strong><br />
-        FlexQL is a compiler-style query engine that converts untrusted filter
-        input into validated, injection-safe database queries — powering APIs,
-        dashboards, and SaaS platforms at scale.
-      </p>
-      <div class="cta">
-        <a class="btn" href="https://github.com/schart/FlexQL"
-          >View on GitHub</a
-        >
+    .badge-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 8px var(--cyan);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    h1 {
+      font-size: clamp(3rem, 7vw, 5.5rem);
+      font-weight: 800;
+      line-height: 1.0;
+      letter-spacing: -0.04em;
+      margin-bottom: 24px;
+      animation: fadeDown 0.7s 0.1s ease both;
+    }
+
+    h1 .accent { color: var(--cyan); }
+    h1 .dim-word { color: var(--dim); }
+
+    .hero-sub {
+      font-size: 1.15rem;
+      color: var(--muted);
+      max-width: 640px;
+      margin: 0 auto 40px;
+      font-weight: 400;
+      animation: fadeDown 0.7s 0.2s ease both;
+      font-family: var(--sans);
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      flex-wrap: wrap;
+      animation: fadeDown 0.7s 0.3s ease both;
+    }
+
+    .btn-primary {
+      padding: 14px 28px;
+      border-radius: 10px;
+      background: var(--primary);
+      color: white;
+      font-weight: 700;
+      font-size: 0.9rem;
+      letter-spacing: 0.02em;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 0 30px var(--primary-glow);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 40px rgba(90,103,242,0.45);
+    }
+
+    .btn-secondary {
+      padding: 14px 28px;
+      border-radius: 10px;
+      background: transparent;
+      color: var(--text);
+      font-weight: 600;
+      font-size: 0.9rem;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--dim);
+      background: var(--card);
+    }
+
+    /* HERO STATS */
+    .hero-stats {
+      display: flex;
+      gap: 40px;
+      justify-content: center;
+      margin-top: 64px;
+      animation: fadeUp 0.7s 0.5s ease both;
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat-val {
+      font-family: var(--mono);
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    /* ── HERO CODE PREVIEW ── */
+    .hero-code {
+      margin-top: 60px;
+      width: 100%;
+      max-width: 680px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      overflow: hidden;
+      animation: fadeUp 0.7s 0.4s ease both;
+      text-align: left;
+      box-shadow: 0 40px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03);
+    }
+
+    .code-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,0.02);
+    }
+
+    .code-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+    }
+
+    .cd-r { background: #ff5f57; }
+    .cd-y { background: #febc2e; }
+    .cd-g { background: #28c840; }
+
+    .code-filename {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-left: 8px;
+    }
+
+    .code-body {
+      padding: 20px 24px;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      line-height: 1.8;
+      color: #8892b0;
+    }
+
+    .t-cyan { color: var(--cyan); }
+    .t-primary { color: #818cf8; }
+    .t-amber { color: var(--amber); }
+    .t-green { color: var(--green); }
+    .t-red { color: #f87171; }
+    .t-white { color: #e2e8f0; }
+    .t-comment { color: #3d4f6b; }
+
+    /* ── SECTIONS ── */
+    section {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 90px 24px;
+      position: relative;
+    }
+
+    .section-label {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--cyan);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    h2 {
+      font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 16px;
+      line-height: 1.15;
+    }
+
+    .section-desc {
+      color: var(--muted);
+      max-width: 640px;
+      margin-bottom: 48px;
+      font-size: 1rem;
+    }
+
+    /* ── FEATURE GRID ── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+    }
+
+    .feature-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      transition: border-color 0.25s, transform 0.25s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--primary), transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .feature-card:hover { border-color: var(--dim); transform: translateY(-3px); }
+    .feature-card:hover::before { opacity: 1; }
+
+    .feat-icon {
+      width: 38px; height: 38px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      margin-bottom: 16px;
+      background: rgba(90,103,242,0.1);
+      border: 1px solid rgba(90,103,242,0.2);
+    }
+
+    .feature-card h3 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      letter-spacing: -0.01em;
+    }
+
+    .feature-card p {
+      font-size: 0.85rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* ── ARCHITECTURE ── */
+    .arch-wrapper {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 40px;
+    }
+
+    .arch-pipeline {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      margin-bottom: 40px;
+      flex-wrap: wrap;
+    }
+
+    .arch-step {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px 28px;
+      text-align: center;
+      min-width: 140px;
+      position: relative;
+      transition: border-color 0.25s;
+    }
+
+    .arch-step:hover { border-color: var(--primary); }
+
+    .arch-step-num {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      color: var(--cyan);
+      letter-spacing: 0.1em;
+      margin-bottom: 6px;
+    }
+
+    .arch-step-name {
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    .arch-step-desc {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .arch-arrow {
+      width: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--dim);
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+
+    .arch-outputs {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .arch-output {
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.85rem;
+    }
+
+    .arch-output-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .dot-ready { background: var(--green); box-shadow: 0 0 8px var(--green); }
+    .dot-soon { background: var(--amber); }
+
+    .arch-output-name { font-weight: 700; }
+    .arch-output-status { font-size: 0.72rem; color: var(--muted); }
+
+    /* ── PLAYGROUND ── */
+    .playground {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .pg-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+    }
+
+    .pg-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,0.02);
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .pg-tabs { display: flex; gap: 6px; }
+
+    .pg-tab {
+      padding: 5px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.75rem;
+      font-family: var(--sans);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .pg-tab:hover { color: var(--text); border-color: var(--dim); }
+
+    .pg-tab.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+      box-shadow: 0 4px 16px var(--primary-glow);
+    }
+
+    .pg-body {
+      padding: 20px;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      line-height: 1.8;
+      color: #8892b0;
+      min-height: 280px;
+    }
+
+    /* ── AST SECTION ── */
+    .ast-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    /* ── SYNTAX TABLE ── */
+    .syntax-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+
+    .syntax-table th {
+      text-align: left;
+      padding: 12px 16px;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .syntax-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+      vertical-align: top;
+    }
+
+    .syntax-table tr:last-child td { border-bottom: none; }
+
+    .syntax-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+    .token {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      background: rgba(90,103,242,0.12);
+      color: #818cf8;
+      padding: 2px 8px;
+      border-radius: 6px;
+      display: inline-block;
+    }
+
+    .token-cyan {
+      background: rgba(0,229,204,0.08);
+      color: var(--cyan);
+    }
+
+    /* ── ROADMAP ── */
+    .roadmap-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .roadmap-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 20px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      font-size: 0.9rem;
+    }
+
+    .rm-icon {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      flex-shrink: 0;
+    }
+
+    .rm-done { background: rgba(34,197,94,0.15); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
+    .rm-next { background: rgba(90,103,242,0.15); color: #818cf8; border: 1px solid rgba(90,103,242,0.3); }
+    .rm-future { background: rgba(255,255,255,0.04); color: var(--dim); border: 1px solid var(--border); }
+
+    .rm-text { flex: 1; }
+    .rm-text strong { display: block; font-size: 0.875rem; margin-bottom: 2px; }
+    .rm-text span { font-size: 0.78rem; color: var(--muted); }
+
+    .rm-tag {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      padding: 3px 10px;
+      border-radius: 999px;
+      letter-spacing: 0.05em;
+    }
+
+    .tag-done { background: rgba(34,197,94,0.1); color: var(--green); }
+    .tag-next { background: rgba(90,103,242,0.1); color: #818cf8; }
+    .tag-future { background: rgba(255,255,255,0.05); color: var(--dim); }
+
+    /* ── USE CASES ── */
+    .usecase-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    .usecase-card {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      background: var(--card);
+      transition: border-color 0.25s;
+    }
+
+    .usecase-card:hover { border-color: var(--primary); }
+
+    .uc-num {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      color: var(--primary);
+      margin-bottom: 10px;
+      letter-spacing: 0.1em;
+    }
+
+    .usecase-card h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 8px; }
+    .usecase-card p { font-size: 0.83rem; color: var(--muted); }
+
+    /* ── DIVIDER ── */
+    .divider {
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+      margin: 0;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 40px 48px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .footer-logo { font-family: var(--mono); color: var(--cyan); font-weight: 700; }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      nav { padding: 14px 20px; }
+      .nav-links { display: none; }
+      .playground, .ast-grid, .usecase-grid { grid-template-columns: 1fr; }
+      .arch-pipeline { gap: 8px; }
+      .arch-arrow { display: none; }
+      footer { flex-direction: column; gap: 12px; text-align: center; }
+      .hero-stats { gap: 24px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">FlexQL</div>
+  <div class="nav-links">
+    <a href="#how-it-works">Architecture</a>
+    <a href="#playground">Playground</a>
+    <a href="#syntax">Syntax</a>
+    <a href="#roadmap">Roadmap</a>
+  </div>
+  <a class="nav-cta" href="https://github.com/schart/FlexQL">GitHub ↗</a>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-glow"></div>
+  <div class="hero-glow-2"></div>
+
+  <div class="badge">
+    <span class="badge-dot"></span>
+    TypeScript · GPL-3.0 · v1 stable
+  </div>
+
+  <h1>
+    Query <span class="accent">Any</span> Database<br/>
+    <span class="dim-word">With One Language</span>
+  </h1>
+
+  <p class="hero-sub">
+    FlexQL is a compiler-style query engine that converts untrusted filter input into validated, injection-safe queries for SQL, Sequelize, MongoDB, and more.
+  </p>
+
+  <div class="hero-actions">
+    <a class="btn-primary" href="https://github.com/schart/FlexQL">View on GitHub</a>
+    <a class="btn-secondary" href="#playground">Live Demo →</a>
+  </div>
+
+  <!-- INLINE CODE PREVIEW -->
+  <div class="hero-code">
+    <div class="code-bar">
+      <div class="code-dot cd-r"></div>
+      <div class="code-dot cd-y"></div>
+      <div class="code-dot cd-g"></div>
+      <span class="code-filename">flexql.ts</span>
+    </div>
+    <div class="code-body">
+      <span class="t-comment">// Your untrusted API input</span><br/>
+      <span class="t-primary">const</span> query <span class="t-cyan">=</span> <span class="t-amber">"username==heja;age>18,status==active"</span><br/><br/>
+      <span class="t-comment">// Compile to SQL — injection-safe</span><br/>
+      <span class="t-primary">const</span> result <span class="t-cyan">=</span> <span class="t-green">FlexQL</span>.compile(query, <span class="t-amber">'sql'</span>)<br/><br/>
+      <span class="t-comment">// ➜ WHERE username = ? AND age > ? OR status = ?</span><br/>
+      <span class="t-comment">// ➜ values: ["heja", 18, "active"]</span><br/><br/>
+      <span class="t-comment">// Swap adapter — same query, zero rewriting</span><br/>
+      <span class="t-green">FlexQL</span>.compile(query, <span class="t-amber">'mongodb'</span>)
+      <span class="t-comment"> // ✅ ready</span>
+    </div>
+  </div>
+
+  <div class="hero-stats">
+    <div class="stat">
+      <div class="stat-val">3</div>
+      <div class="stat-label">Adapters Live</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val">100%</div>
+      <div class="stat-label">TypeScript</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val">0</div>
+      <div class="stat-label">Raw SQL Strings</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val">N-ary</div>
+      <div class="stat-label">AST Engine</div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="section-label">Why FlexQL</div>
+  <h2>Built for Safety.<br/>Designed for Scale.</h2>
+  <p class="section-desc">Modern applications need flexible filtering without exposing SQL, coupling ORM logic to APIs, or creating injection vulnerabilities.</p>
+
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feat-icon">🧠</div>
+      <h3>Human-Readable Syntax</h3>
+      <p>Queries stay understandable as complexity grows. No nested JSON objects, no raw SQL strings, no ORM-specific conditions.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feat-icon">🔒</div>
+      <h3>Injection-Safe by Design</h3>
+      <p>All values are validated and parameterized. FlexQL never concatenates raw user input — safety is architectural, not optional.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feat-icon">🔀</div>
+      <h3>Customizable Separators</h3>
+      <p>Default <code style="font-family:var(--mono);font-size:0.8em;color:var(--cyan)">;</code> for AND and <code style="font-family:var(--mono);font-size:0.8em;color:var(--cyan)">,</code> for OR — both are fully configurable to match your domain conventions.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feat-icon">🌍</div>
+      <h3>Adapter-Based Output</h3>
+      <p>SQL, Sequelize, and MongoDB are live today. Elasticsearch is on the roadmap. Compile once, target any backend.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feat-icon">🧱</div>
+      <h3>Real Query Engine</h3>
+      <p>Lexer → Parser → N-ary AST → Adapter. FlexQL understands logical precedence and structure — it's not a string replacement tool.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feat-icon">🧩</div>
+      <h3>Easy to Extend</h3>
+      <p>Create new adapters quickly with the modular architecture. Validated syntax with type checking is included out of the box.</p>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ARCHITECTURE -->
+<section id="how-it-works">
+  <div class="section-label">Architecture</div>
+  <h2>Deterministic<br/>Compilation Pipeline</h2>
+  <p class="section-desc">Untrusted input is never executed directly. It passes through a structured pipeline — parsed, validated, and transformed before any backend ever sees it.</p>
+
+  <div class="arch-wrapper">
+    <div class="arch-pipeline">
+      <div class="arch-step">
+        <div class="arch-step-num">01 — LEXER</div>
+        <div class="arch-step-name">Tokenize</div>
+        <div class="arch-step-desc">Normalize raw input into a strict token stream. Reject invalid characters immediately.</div>
       </div>
-    </header>
+      <div class="arch-arrow">→</div>
+      <div class="arch-step">
+        <div class="arch-step-num">02 — PARSER</div>
+        <div class="arch-step-name">Build AST</div>
+        <div class="arch-step-desc">Validate token order and construct an N-ary AST. Enforce AND/OR precedence.</div>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-step">
+        <div class="arch-step-num">03 — ADAPTER</div>
+        <div class="arch-step-name">Compile</div>
+        <div class="arch-step-desc">Walk the AST and emit backend-specific parameterized output. Never raw strings.</div>
+      </div>
+    </div>
 
-    <section>
-      <h2>Why FlexQL?</h2>
-      <p class="section-desc">
-        Modern applications need powerful filtering — but exposing SQL or
-        complex ORM logic introduces security risks, tight coupling, and
-        long-term maintenance costs. FlexQL provides a single, safe query
-        language that compiles into multiple backends without locking your API
-        to a database.
-      </p>
+    <div style="margin-bottom:20px;font-size:0.8rem;color:var(--muted);text-align:center">Adapter outputs</div>
 
-      <div class="grid">
-        <div class="card">
-          <h3>🧠 Human-Readable</h3>
-          <p>
-            Queries remain understandable even as complexity grows. No nested
-            JSON. No unreadable SQL strings.
-          </p>
-        </div>
-        <div class="card">
-          <h3>🔒 Injection-Safe</h3>
-          <p>
-            All values are validated and parameterized. FlexQL never
-            concatenates raw user input.
-          </p>
-        </div>
-        <div class="card">
-          <h3>🌍 Adapter-Based</h3>
-          <p>
-            Compile once, target many systems: SQL, Sequelize, and soon MongoDB
-            & Elasticsearch.
-          </p>
-        </div>
-        <div class="card">
-          <h3>🧱 Real Query Engine</h3>
-          <p>
-            Lexer → Parser → AST → Adapter. FlexQL understands logic,
-            precedence, and structure.
-          </p>
+    <div class="arch-outputs">
+      <div class="arch-output">
+        <div class="arch-output-dot dot-ready"></div>
+        <div>
+          <div class="arch-output-name">SQL</div>
+          <div class="arch-output-status">Parameterized · Live</div>
         </div>
       </div>
-    </section>
-
-    <section>
-      <h2>Why Now?</h2>
-      <p class="section-desc">
-        APIs are becoming more flexible and user-driven, while security and
-        backend complexity continue to increase. Teams need a way to accept
-        dynamic queries without sacrificing safety, performance, or portability.
-      </p>
-    </section>
-
-    <section>
-      <h2>From Text to Logic</h2>
-      <p class="section-desc">
-        A single string expresses complex logic with clear AND / OR semantics.
-      </p>
-      <pre>username==heja;age>18,status==active</pre>
-      <p class="section-desc">Interpreted as:</p>
-      <pre>
-(username == "heja" AND age > 18)
-OR
-(status == "active")</pre
-      >
-    </section>
-
-    <section>
-      <h2>How It Works</h2>
-      <p style="color: var(--muted); max-width: 780px">
-        FlexQL operates as a
-        <strong>deterministic compilation pipeline</strong>. Untrusted input is
-        never executed directly. Instead, it is parsed, validated, and
-        transformed into a structured representation before being compiled into
-        backend‑specific queries. This makes FlexQL predictable, secure, and
-        portable by design.
-      </p>
-
-      <div class="grid">
-        <div class="card">
-          <h3>1️⃣ Lexing — Normalize Input</h3>
-          <p>
-            The lexer converts the raw query string into a strict stream of
-            tokens (identifiers, operators, values, and logical separators).
-          </p>
-          <p style="color: var(--muted)">
-            Any invalid characters, unsupported operators, or malformed values
-            are rejected immediately.
-          </p>
-        </div>
-
-        <div class="card">
-          <h3>2️⃣ Parsing — Build Intent</h3>
-          <p>
-            The parser validates token order and constructs an
-            <strong>N‑ary Abstract Syntax Tree (AST)</strong>
-            that represents the logical intent of the query.
-          </p>
-          <p style="color: var(--muted)">
-            Logical precedence is enforced consistently: AND (;) binds tighter
-            than OR (,).
-          </p>
-        </div>
-
-        <div class="card">
-          <h3>3️⃣ Adapting — Compile Output</h3>
-          <p>
-            Adapters walk the AST and compile it into backend‑specific query
-            structures such as parameterized SQL or ORM condition objects.
-          </p>
-          <p style="color: var(--muted)">
-            Values are always bound as parameters — FlexQL never emits raw
-            executable strings.
-          </p>
+      <div class="arch-output">
+        <div class="arch-output-dot dot-ready"></div>
+        <div>
+          <div class="arch-output-name">Sequelize</div>
+          <div class="arch-output-status">ORM conditions · Live</div>
         </div>
       </div>
-
-      <div style="margin-top: 40px; display: flex; justify-content: center">
-        <svg
-          width="760"
-          height="180"
-          viewBox="0 0 760 180"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <defs>
-            <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stop-color="#6366f1" />
-              <stop offset="100%" stop-color="#22d3ee" />
-            </linearGradient>
-          </defs>
-
-          <!-- Boxes -->
-          <rect
-            x="20"
-            y="50"
-            rx="16"
-            ry="16"
-            width="200"
-            height="80"
-            fill="#151823"
-            stroke="#2a2f45"
-          />
-          <rect
-            x="280"
-            y="50"
-            rx="16"
-            ry="16"
-            width="200"
-            height="80"
-            fill="#151823"
-            stroke="#2a2f45"
-          />
-          <rect
-            x="540"
-            y="50"
-            rx="16"
-            ry="16"
-            width="200"
-            height="80"
-            fill="#151823"
-            stroke="#2a2f45"
-          />
-
-          <!-- Arrows -->
-          <line
-            x1="220"
-            y1="90"
-            x2="280"
-            y2="90"
-            stroke="url(#g1)"
-            stroke-width="2"
-          />
-          <line
-            x1="480"
-            y1="90"
-            x2="540"
-            y2="90"
-            stroke="url(#g1)"
-            stroke-width="2"
-          />
-
-          <!-- Arrow heads -->
-          <polygon points="280,90 270,85 270,95" fill="#22d3ee" />
-          <polygon points="540,90 530,85 530,95" fill="#22d3ee" />
-
-          <!-- Text -->
-          <text
-            x="120"
-            y="85"
-            fill="#e5e7eb"
-            font-size="14"
-            font-weight="600"
-            text-anchor="middle"
-          >
-            Lexer
-          </text>
-          <text
-            x="120"
-            y="105"
-            fill="#9ca3af"
-            font-size="12"
-            text-anchor="middle"
-          >
-            Normalize input
-          </text>
-
-          <text
-            x="380"
-            y="85"
-            fill="#e5e7eb"
-            font-size="14"
-            font-weight="600"
-            text-anchor="middle"
-          >
-            Parser
-          </text>
-          <text
-            x="380"
-            y="105"
-            fill="#9ca3af"
-            font-size="12"
-            text-anchor="middle"
-          >
-            Build AST
-          </text>
-
-          <text
-            x="640"
-            y="85"
-            fill="#e5e7eb"
-            font-size="14"
-            font-weight="600"
-            text-anchor="middle"
-          >
-            Adapters
-          </text>
-          <text
-            x="640"
-            y="105"
-            fill="#9ca3af"
-            font-size="12"
-            text-anchor="middle"
-          >
-            Compile output
-          </text>
-
-          <!-- Caption -->
-          <text
-            x="380"
-            y="160"
-            fill="#9ca3af"
-            font-size="12"
-            text-anchor="middle"
-          >
-            Deterministic pipeline → validated AST → injection-safe queries
-          </text>
-        </svg>
-      </div>
-    </section>
-
-    <section>
-      <h2>Live Playground Preview</h2>
-      <p class="section-desc">
-        A preview of how FlexQL compiles one query into multiple backend
-        formats. (Read-only demo — real compiler coming soon)
-      </p>
-
-      <div class="playground">
-        <!-- Input -->
-        <div class="pg-panel">
-          <div class="pg-header">FlexQL Input</div>
-          <pre class="pg-input" aria-readonly="true">
-username==heja;age>18,status==active
-      </pre
-          >
-        </div>
-
-        <!-- Output -->
-        <div class="pg-panel">
-          <div class="pg-header">
-            Compiled Output
-            <div class="pg-tabs">
-              <button class="pg-tab active" data-target="sql">SQL</button>
-              <button class="pg-tab" data-target="sequelize">Sequelize</button>
-              <button class="pg-tab" data-target="mongo">MongoDB</button>
-            </div>
-          </div>
-
-          <pre id="pg-output"></pre>
+      <div class="arch-output">
+        <div class="arch-output-dot dot-ready"></div>
+        <div>
+          <div class="arch-output-name">MongoDB</div>
+          <div class="arch-output-status">$or / $and filter · Live</div>
         </div>
       </div>
-    </section>
+      <div class="arch-output">
+        <div class="arch-output-dot dot-soon"></div>
+        <div>
+          <div class="arch-output-name">Elasticsearch</div>
+          <div class="arch-output-status">Query DSL · Coming soon</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 
-    <style>
-      /* Playground layout */
-      .playground {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 24px;
-      }
+<div class="divider"></div>
 
-      .pg-panel {
-        background: linear-gradient(180deg, #171a2a, #151823);
-        border: 1px solid #232741;
-        border-radius: 20px;
-        padding: 20px;
-      }
+<!-- AST SECTION -->
+<section id="ast">
+  <div class="section-label">Under the Hood</div>
+  <h2>Not a String Parser.<br/>A Real Query Engine.</h2>
+  <p class="section-desc">FlexQL constructs a full N-ary Abstract Syntax Tree that captures logical structure, precedence, and intent before any adapter runs.</p>
 
-      .pg-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-weight: 600;
-        margin-bottom: 12px;
-      }
-
-      /* Read-only input */
-      .pg-input {
-        background: #0f1220;
-        border: 1px solid #22264a;
-        border-radius: 14px;
-        padding: 18px;
-        color: #c7d2fe;
-        font-family: monospace;
-        cursor: default;
-        user-select: text;
-      }
-
-      /* Output */
-      #pg-output {
-        background: #0f1220;
-        border: 1px solid #22264a;
-        border-radius: 14px;
-        padding: 18px;
-        color: #e0e7ff;
-        font-family: monospace;
-        min-height: 180px;
-      }
-
-      /* Tabs */
-      .pg-tabs {
-        display: flex;
-        gap: 8px;
-      }
-
-      .pg-tab {
-        padding: 6px 12px;
-        border-radius: 10px;
-        border: 1px solid #2a2f45;
-        background: transparent;
-        color: #9ca3af;
-        font-size: 0.85rem;
-        cursor: pointer;
-        transition: all 0.25s ease;
-      }
-
-      .pg-tab:hover {
-        color: #fff;
-        border-color: #6366f1;
-        box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.3);
-      }
-
-      .pg-tab.active {
-        background: #6366f1;
-        color: white;
-        border-color: #6366f1;
-        box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
-      }
-
-      /* Responsive */
-      @media (max-width: 900px) {
-        .playground {
-          grid-template-columns: 1fr;
+  <div class="ast-grid">
+    <div class="pg-panel">
+      <div class="pg-header">FlexQL Input</div>
+      <div class="pg-body">
+        <span class="t-comment">// Input query string</span><br/>
+        <span class="t-amber">"username==heja;age>18,status==active"</span><br/><br/>
+        <span class="t-comment">// Parsed as:</span><br/>
+        <span class="t-comment">// (username == "heja" AND age > 18)</span><br/>
+        <span class="t-comment">// OR</span><br/>
+        <span class="t-comment">// (status == "active")</span><br/><br/>
+        <span class="t-comment">// Separator key:</span><br/>
+        <span class="t-cyan">;</span> <span class="t-comment">→ AND (higher precedence)</span><br/>
+        <span class="t-cyan">,</span> <span class="t-comment">→ OR (lower precedence)</span>
+      </div>
+    </div>
+    <div class="pg-panel">
+      <div class="pg-header">Generated AST</div>
+      <div class="pg-body">
+        {<br/>
+        &nbsp;&nbsp;<span class="t-cyan">"type"</span>: <span class="t-amber">"OR"</span>,<br/>
+        &nbsp;&nbsp;<span class="t-cyan">"children"</span>: [<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;{<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-cyan">"type"</span>: <span class="t-amber">"AND"</span>,<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-cyan">"children"</span>: [<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ <span class="t-cyan">"field"</span>: <span class="t-amber">"username"</span>, <span class="t-cyan">"op"</span>: <span class="t-amber">"=="</span>, <span class="t-cyan">"value"</span>: <span class="t-amber">"heja"</span> },<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ <span class="t-cyan">"field"</span>: <span class="t-amber">"age"</span>, <span class="t-cyan">"op"</span>: <span class="t-amber">">"</span>, <span class="t-cyan">"value"</span>: <span class="t-green">18</span> }<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;]<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;},<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;{ <span class="t-cyan">"field"</span>: <span class="t-amber">"status"</span>, <span class="t-cyan">"op"</span>: <span class="t-amber">"=="</span>, <span class="t-cyan">"value"</span>: <span class="t-amber">"active"</span> }<br/>
+        &nbsp;&nbsp;]<br/>
         }
-      }
-    </style>
+      </div>
+    </div>
+  </div>
+</section>
 
-    <script>
-      const outputMap = {
-        sql: `{
-  type: "sql",
-  payload: {
-    conditions: "WHERE username = ? AND age > ? OR status = ?",
-    values: ["heja", 18, "active"]
-  }
-}`,
+<div class="divider"></div>
 
-        sequelize: `{
-  type: "sequelize",
-  where: {
-    [Op.or]: [
-      {
-        username: "heja",
-        age: { [Op.gt]: 18 }
-      },
-      {
-        status: "active"
-      }
-    ]
-  }
-}`,
+<!-- PLAYGROUND -->
+<section id="playground">
+  <div class="section-label">Live Demo</div>
+  <h2>One Query.<br/>Three Backends.</h2>
+  <p class="section-desc">See how the same FlexQL expression compiles to SQL, Sequelize, and MongoDB — each injection-safe and ready to use.</p>
 
-        mongo: `{
-  type: "mongodb",
-  $or: [
-    { username: "heja", age: { $gt: 18 } },
-    { status: "active" }
-  ]
-}`,
-      };
+  <div class="playground">
+    <div class="pg-panel">
+      <div class="pg-header">FlexQL Input</div>
+      <div class="pg-body">
+        <span class="t-cyan">username</span><span class="t-white">==</span><span class="t-amber">heja</span><span class="t-white">;</span><span class="t-cyan">age</span><span class="t-white">></span><span class="t-green">18</span><span class="t-white">,</span><span class="t-cyan">status</span><span class="t-white">==</span><span class="t-amber">active</span><br/><br/>
+        <span class="t-comment">// Complex example:</span><br/>
+        <span class="t-cyan">username</span><span class="t-white">==</span><span class="t-amber">"heja"</span><span class="t-white">,</span><span class="t-cyan">country</span><span class="t-white">==</span><span class="t-amber">"NL"</span><span class="t-white">;</span><br/>
+        <span class="t-cyan">score</span><span class="t-white">></span><span class="t-green">90</span><span class="t-white">,</span><span class="t-cyan">rank</span><span class="t-white">>=</span><span class="t-green">5</span><span class="t-white">;</span><br/>
+        <span class="t-cyan">active</span><span class="t-white">==</span><span class="t-green">true</span><span class="t-white">,</span><span class="t-cyan">verified</span><span class="t-white">==</span><span class="t-green">true</span><br/><br/>
+        <span class="t-comment">// Operator set:</span><br/>
+        <span class="t-cyan">==  !=  &gt;  &lt;  &gt;=  &lt;=</span>
+      </div>
+    </div>
 
-      const tabs = document.querySelectorAll(".pg-tab");
-      const output = document.getElementById("pg-output");
-
-      function setActive(tab) {
-        tabs.forEach((t) => t.classList.remove("active"));
-        tab.classList.add("active");
-        output.textContent = outputMap[tab.dataset.target];
-      }
-
-      tabs.forEach((tab) => {
-        tab.addEventListener("click", () => setActive(tab));
-      });
-
-      // init
-      output.textContent = outputMap.sql;
-    </script>
-
-    <section>
-      <h2>Designed for Real-World Systems</h2>
-      <div class="grid">
-        <div class="card">
-          <strong>Admin Dashboards</strong><br />Advanced user-defined filters
-          without exposing SQL.
-        </div>
-        <div class="card">
-          <strong>Public APIs</strong><br />Safely accept dynamic filtering via
-          query parameters.
-        </div>
-        <div class="card">
-          <strong>Multi-ORM Backends</strong><br />One filter language across
-          multiple databases.
-        </div>
-        <div class="card">
-          <strong>Rule Engines</strong><br />Store and execute logical rules as
-          readable strings.
+    <div class="pg-panel">
+      <div class="pg-header">
+        Compiled Output
+        <div class="pg-tabs">
+          <button class="pg-tab active" data-target="sql">SQL</button>
+          <button class="pg-tab" data-target="sequelize">Sequelize</button>
+          <button class="pg-tab" data-target="mongo">MongoDB</button>
         </div>
       </div>
-    </section>
+      <div class="pg-body" id="pg-output"></div>
+    </div>
+  </div>
+</section>
 
-    <section>
-      <h2>Long-Term Vision</h2>
-      <p class="section-desc">
-        FlexQL aims to become the standard query language for user-defined
-        filtering across APIs and data platforms — similar to how SQL
-        standardized relational querying, but designed for modern application
-        architectures.
-      </p>
-    </section>
+<div class="divider"></div>
 
-    <section>
-      <h2>Product Roadmap</h2>
-      <ul>
-        <li>✅ Core language & SQL / Sequelize adapters</li>
-        <li>⬜ MongoDB adapter</li>
-        <li>⬜ Elasticsearch adapter</li>
-        <li>⬜ Parenthesis & nested expressions</li>
-        <li>⬜ Type inference & schema validation</li>
-        <li>⬜ Interactive FlexQL Playground</li>
-      </ul>
-    </section>
+<!-- SYNTAX REFERENCE -->
+<section id="syntax">
+  <div class="section-label">Syntax Reference</div>
+  <h2>Complete<br/>Language Spec</h2>
+  <p class="section-desc">FlexQL's syntax is intentionally compact and readable. Every element has a defined role in the compilation pipeline.</p>
 
-    <footer>
-      <p>MIT © 2025 — Built by Heja Arslan, Backend Engineer</p>
-    </footer>
-  </body>
+  <div style="border:1px solid var(--border);border-radius:16px;overflow:hidden">
+    <table class="syntax-table">
+      <thead>
+        <tr>
+          <th>Element</th>
+          <th>Description</th>
+          <th>Examples</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="token">Identifier</span></td>
+          <td style="color:var(--muted)">Column or field name in your data model</td>
+          <td><code style="font-family:var(--mono);font-size:0.8em;color:var(--cyan)">username</code>, <code style="font-family:var(--mono);font-size:0.8em;color:var(--cyan)">age</code>, <code style="font-family:var(--mono);font-size:0.8em;color:var(--cyan)">created_at</code></td>
+        </tr>
+        <tr>
+          <td><span class="token">Operator</span></td>
+          <td style="color:var(--muted)">Comparison operator between field and value</td>
+          <td><code style="font-family:var(--mono);font-size:0.8em;color:var(--cyan)">==  !=  &gt;  &lt;  &gt;=  &lt;=</code></td>
+        </tr>
+        <tr>
+          <td><span class="token token-cyan">;</span></td>
+          <td style="color:var(--muted)">AND separator — binds tighter than OR (customizable)</td>
+          <td><code style="font-family:var(--mono);font-size:0.8em;color:var(--muted)">name==x<span style="color:var(--cyan)">;</span>age>18</code></td>
+        </tr>
+        <tr>
+          <td><span class="token token-cyan">,</span></td>
+          <td style="color:var(--muted)">OR separator — lower precedence (customizable)</td>
+          <td><code style="font-family:var(--mono);font-size:0.8em;color:var(--muted)">status==a<span style="color:var(--cyan)">,</span>status==b</code></td>
+        </tr>
+        <tr>
+          <td><span class="token">Value</span></td>
+          <td style="color:var(--muted)">String, number, boolean, or date literal</td>
+          <td><code style="font-family:var(--mono);font-size:0.8em;color:var(--cyan)">"heja"</code>, <code style="font-family:var(--mono);font-size:0.8em;color:var(--cyan)">18</code>, <code style="font-family:var(--mono);font-size:0.8em;color:var(--cyan)">true</code>, <code style="font-family:var(--mono);font-size:0.8em;color:var(--cyan)">2025-01-01</code></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="margin-top:20px;padding:16px 20px;background:rgba(0,229,204,0.05);border:1px solid rgba(0,229,204,0.15);border-radius:12px;font-size:0.82rem;color:var(--muted)">
+    ⚠️ <strong style="color:var(--text)">Note:</strong> Spaces cannot be used as separators in the query string. Use <code style="font-family:var(--mono);color:var(--cyan)">;</code> and <code style="font-family:var(--mono);color:var(--cyan)">,</code> to separate conditions.
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- USE CASES -->
+<section id="use-cases">
+  <div class="section-label">Use Cases</div>
+  <h2>Built for Real<br/>Production Systems</h2>
+  <p class="section-desc">FlexQL is designed for environments where flexibility, security, and portability all matter at the same time.</p>
+
+  <div class="usecase-grid">
+    <div class="usecase-card">
+      <div class="uc-num">01</div>
+      <h3>Admin Dashboards</h3>
+      <p>Advanced user-defined filters without exposing SQL to your frontend. Power complex data grids safely.</p>
+    </div>
+    <div class="usecase-card">
+      <div class="uc-num">02</div>
+      <h3>Public APIs</h3>
+      <p>Accept dynamic filtering via query parameters with zero injection risk. Validate and compile in one step.</p>
+    </div>
+    <div class="usecase-card">
+      <div class="uc-num">03</div>
+      <h3>Multi-ORM Backends</h3>
+      <p>One filter language across multiple databases. Migrate your backend without rewriting your filter logic.</p>
+    </div>
+    <div class="usecase-card">
+      <div class="uc-num">04</div>
+      <h3>Rule Engines</h3>
+      <p>Store and execute logical rules as readable, portable strings. Human-readable and machine-executable.</p>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ROADMAP -->
+<section id="roadmap">
+  <div class="section-label">Roadmap</div>
+  <h2>What's Built.<br/>What's Next.</h2>
+  <p class="section-desc">FlexQL ships with a production-ready core. The roadmap extends toward a universal query standard for modern application architectures.</p>
+
+  <ul class="roadmap-list">
+    <li class="roadmap-item">
+      <div class="rm-icon rm-done">✓</div>
+      <div class="rm-text">
+        <strong>Core Language & SQL Adapter</strong>
+        <span>Lexer → Parser → N-ary AST → parameterized SQL output</span>
+      </div>
+      <span class="rm-tag tag-done">Shipped</span>
+    </li>
+    <li class="roadmap-item">
+      <div class="rm-icon rm-done">✓</div>
+      <div class="rm-text">
+        <strong>Sequelize Adapter</strong>
+        <span>Full ORM-compatible condition objects with Op.or / Op.and</span>
+      </div>
+      <span class="rm-tag tag-done">Shipped</span>
+    </li>
+    <li class="roadmap-item">
+      <div class="rm-icon rm-done">✓</div>
+      <div class="rm-text">
+        <strong>MongoDB Adapter</strong>
+        <span>Native $or / $and filter objects — ready to pass to any Mongo driver</span>
+      </div>
+      <span class="rm-tag tag-done">Shipped</span>
+    </li>
+    <li class="roadmap-item">
+      <div class="rm-icon rm-next">→</div>
+      <div class="rm-text">
+        <strong>Elasticsearch Adapter</strong>
+        <span>Query DSL output for full-text and structured search</span>
+      </div>
+      <span class="rm-tag tag-next">In Progress</span>
+    </li>
+    <li class="roadmap-item">
+      <div class="rm-icon rm-next">→</div>
+      <div class="rm-text">
+        <strong>Parenthesis & Nested Expressions</strong>
+        <span>Explicit grouping for complex multi-level logic</span>
+      </div>
+      <span class="rm-tag tag-next">Next</span>
+    </li>
+    <li class="roadmap-item">
+      <div class="rm-icon rm-future">○</div>
+      <div class="rm-text">
+        <strong>Type Inference & Schema Validation</strong>
+        <span>Validate field types against your schema at compile time</span>
+      </div>
+      <span class="rm-tag tag-future">Planned</span>
+    </li>
+    <li class="roadmap-item">
+      <div class="rm-icon rm-future">○</div>
+      <div class="rm-text">
+        <strong>Query Optimizer</strong>
+        <span>Simplify and deduplicate redundant conditions in the AST</span>
+      </div>
+      <span class="rm-tag tag-future">Planned</span>
+    </li>
+    <li class="roadmap-item">
+      <div class="rm-icon rm-future">○</div>
+      <div class="rm-text">
+        <strong>Interactive FlexQL Playground</strong>
+        <span>Live browser-based compiler with real-time adapter output</span>
+      </div>
+      <span class="rm-tag tag-future">Planned</span>
+    </li>
+  </ul>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">FlexQL</div>
+  <div>GPL-3.0 © 2025 — Built by <strong style="color:var(--text)">Heja Arslan</strong>, Backend Engineer</div>
+  <a href="https://github.com/schart/FlexQL" style="color:var(--muted);transition:color 0.2s" onmouseover="this.style.color='var(--cyan)'" onmouseout="this.style.color='var(--muted)'">github.com/schart/FlexQL ↗</a>
+</footer>
+
+<script>
+  const outputMap = {
+    sql: `<span class="t-comment">// SQL Adapter output</span>
+{
+  <span class="t-cyan">type</span>: <span class="t-amber">'sql'</span>,
+  <span class="t-cyan">payload</span>: {
+    <span class="t-cyan">conditions</span>: <span class="t-amber">'WHERE username = ? AND age > ? OR status = ?'</span>,
+    <span class="t-cyan">values</span>: [<span class="t-amber">"heja"</span>, <span class="t-green">18</span>, <span class="t-amber">"active"</span>]
+  }
+}
+
+<span class="t-comment">// Use directly:</span>
+db.query(<span class="t-amber">\`SELECT * FROM users \${conditions}\`</span>, values)`,
+
+    sequelize: `<span class="t-comment">// Sequelize Adapter output</span>
+{
+  <span class="t-cyan">type</span>: <span class="t-amber">'sequelize'</span>,
+  <span class="t-cyan">payload</span>: {
+    <span class="t-cyan">where</span>: {
+      [<span class="t-primary">Op.or</span>]: [
+        {
+          <span class="t-cyan">username</span>: <span class="t-amber">"heja"</span>,
+          <span class="t-cyan">age</span>: { [<span class="t-primary">Op.gt</span>]: <span class="t-green">18</span> }
+        },
+        { <span class="t-cyan">status</span>: <span class="t-amber">"active"</span> }
+      ]
+    }
+  }
+}
+
+<span class="t-comment">// Use directly:</span>
+Model.findAll({ <span class="t-cyan">where</span>: conditions.where })`,
+
+    mongo: `<span class="t-comment">// MongoDB Adapter output</span>
+{
+  <span class="t-cyan">type</span>: <span class="t-amber">'mongodb'</span>,
+  <span class="t-primary">$or</span>: [
+    {
+      <span class="t-cyan">username</span>: <span class="t-amber">"heja"</span>,
+      <span class="t-cyan">age</span>: { <span class="t-primary">$gt</span>: <span class="t-green">18</span> }
+    },
+    { <span class="t-cyan">status</span>: <span class="t-amber">"active"</span> }
+  ]
+}
+
+<span class="t-comment">// Use directly:</span>
+collection.find(result)  <span class="t-comment">// ✅ ready</span>`,
+  };
+
+  const tabs = document.querySelectorAll('.pg-tab');
+  const output = document.getElementById('pg-output');
+
+  function setActive(tab) {
+    tabs.forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    output.innerHTML = outputMap[tab.dataset.target];
+  }
+
+  tabs.forEach(tab => tab.addEventListener('click', () => setActive(tab)));
+  output.innerHTML = outputMap.sql;
+
+  // Scroll reveal
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.style.opacity = '1';
+        e.target.style.transform = 'translateY(0)';
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('section').forEach(s => {
+    s.style.opacity = '0';
+    s.style.transform = 'translateY(24px)';
+    s.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+    observer.observe(s);
+  });
+</script>
+</body>
 </html>
