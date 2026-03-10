@@ -1,1238 +1,691 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FlexQL — Safe Query Infrastructure</title>
-  <meta name="description" content="FlexQL is a compiler-style, injection-safe query language engine for APIs, dashboards, and SaaS platforms." />
-  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
-
-  <style>
-    :root {
-      --bg: #060810;
-      --surface: #0d1018;
-      --card: #111520;
-      --border: #1c2035;
-      --text: #e2e8f0;
-      --muted: #6b7591;
-      --dim: #3d4560;
-      --primary: #5a67f2;
-      --primary-glow: rgba(90, 103, 242, 0.25);
-      --cyan: #00e5cc;
-      --cyan-glow: rgba(0, 229, 204, 0.15);
-      --amber: #f5a623;
-      --green: #22c55e;
-      --mono: 'Space Mono', monospace;
-      --sans: 'Syne', sans-serif;
-    }
-
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    html { scroll-behavior: smooth; }
-
-    body {
-      font-family: var(--sans);
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.65;
-      overflow-x: hidden;
-    }
-
-    /* ── NOISE OVERLAY ── */
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-      pointer-events: none;
-      z-index: 0;
-      opacity: 0.5;
-    }
-
-    a { color: inherit; text-decoration: none; }
-
-    /* ── NAV ── */
-    nav {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      z-index: 100;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 16px 48px;
-      background: rgba(6, 8, 16, 0.75);
-      backdrop-filter: blur(14px);
-      border-bottom: 1px solid var(--border);
-    }
-
-    .nav-logo {
-      font-family: var(--mono);
-      font-weight: 700;
-      font-size: 1.1rem;
-      color: var(--cyan);
-      letter-spacing: -0.02em;
-    }
-
-    .nav-links {
-      display: flex;
-      gap: 32px;
-      font-size: 0.85rem;
-      color: var(--muted);
-    }
-
-    .nav-links a:hover { color: var(--text); }
-
-    .nav-cta {
-      padding: 8px 18px;
-      border-radius: 8px;
-      background: var(--primary);
-      color: white;
-      font-size: 0.85rem;
-      font-weight: 700;
-      letter-spacing: 0.02em;
-      transition: box-shadow 0.2s;
-    }
-
-    .nav-cta:hover { box-shadow: 0 0 24px var(--primary-glow); }
-
-    /* ── HERO ── */
-    .hero {
-      position: relative;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 120px 24px 80px;
-      overflow: hidden;
-    }
-
-    .hero-grid {
-      position: absolute;
-      inset: 0;
-      background-image:
-        linear-gradient(var(--border) 1px, transparent 1px),
-        linear-gradient(90deg, var(--border) 1px, transparent 1px);
-      background-size: 60px 60px;
-      mask-image: radial-gradient(ellipse 80% 60% at 50% 50%, black 30%, transparent 100%);
-      opacity: 0.35;
-    }
-
-    .hero-glow {
-      position: absolute;
-      width: 700px; height: 400px;
-      background: radial-gradient(ellipse, rgba(90,103,242,0.18) 0%, transparent 70%);
-      top: 20%; left: 50%;
-      transform: translateX(-50%);
-      pointer-events: none;
-    }
-
-    .hero-glow-2 {
-      position: absolute;
-      width: 500px; height: 300px;
-      background: radial-gradient(ellipse, rgba(0,229,204,0.10) 0%, transparent 70%);
-      top: 45%; left: 55%;
-      pointer-events: none;
-    }
-
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 14px;
-      border-radius: 999px;
-      background: rgba(0, 229, 204, 0.07);
-      border: 1px solid rgba(0, 229, 204, 0.2);
-      font-family: var(--mono);
-      font-size: 0.75rem;
-      color: var(--cyan);
-      margin-bottom: 28px;
-      letter-spacing: 0.05em;
-      animation: fadeDown 0.6s ease both;
-    }
-
-    .badge-dot {
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: var(--cyan);
-      box-shadow: 0 0 8px var(--cyan);
-      animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.3; }
-    }
-
-    h1 {
-      font-size: clamp(3rem, 7vw, 5.5rem);
-      font-weight: 800;
-      line-height: 1.0;
-      letter-spacing: -0.04em;
-      margin-bottom: 24px;
-      animation: fadeDown 0.7s 0.1s ease both;
-    }
-
-    h1 .accent { color: var(--cyan); }
-    h1 .dim-word { color: var(--dim); }
-
-    .hero-sub {
-      font-size: 1.15rem;
-      color: var(--muted);
-      max-width: 640px;
-      margin: 0 auto 40px;
-      font-weight: 400;
-      animation: fadeDown 0.7s 0.2s ease both;
-      font-family: var(--sans);
-    }
-
-    .hero-actions {
-      display: flex;
-      gap: 14px;
-      justify-content: center;
-      flex-wrap: wrap;
-      animation: fadeDown 0.7s 0.3s ease both;
-    }
-
-    .btn-primary {
-      padding: 14px 28px;
-      border-radius: 10px;
-      background: var(--primary);
-      color: white;
-      font-weight: 700;
-      font-size: 0.9rem;
-      letter-spacing: 0.02em;
-      border: none;
-      cursor: pointer;
-      transition: all 0.2s;
-      box-shadow: 0 0 30px var(--primary-glow);
-    }
-
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 40px rgba(90,103,242,0.45);
-    }
-
-    .btn-secondary {
-      padding: 14px 28px;
-      border-radius: 10px;
-      background: transparent;
-      color: var(--text);
-      font-weight: 600;
-      font-size: 0.9rem;
-      border: 1px solid var(--border);
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .btn-secondary:hover {
-      border-color: var(--dim);
-      background: var(--card);
-    }
-
-    /* HERO STATS */
-    .hero-stats {
-      display: flex;
-      gap: 40px;
-      justify-content: center;
-      margin-top: 64px;
-      animation: fadeUp 0.7s 0.5s ease both;
-    }
-
-    .stat {
-      text-align: center;
-    }
-
-    .stat-val {
-      font-family: var(--mono);
-      font-size: 1.6rem;
-      font-weight: 700;
-      color: var(--text);
-    }
-
-    .stat-label {
-      font-size: 0.75rem;
-      color: var(--muted);
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      margin-top: 2px;
-    }
-
-    /* ── HERO CODE PREVIEW ── */
-    .hero-code {
-      margin-top: 60px;
-      width: 100%;
-      max-width: 680px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      overflow: hidden;
-      animation: fadeUp 0.7s 0.4s ease both;
-      text-align: left;
-      box-shadow: 0 40px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03);
-    }
-
-    .code-bar {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 12px 16px;
-      border-bottom: 1px solid var(--border);
-      background: rgba(255,255,255,0.02);
-    }
-
-    .code-dot {
-      width: 10px; height: 10px;
-      border-radius: 50%;
-    }
-
-    .cd-r { background: #ff5f57; }
-    .cd-y { background: #febc2e; }
-    .cd-g { background: #28c840; }
-
-    .code-filename {
-      font-family: var(--mono);
-      font-size: 0.72rem;
-      color: var(--muted);
-      margin-left: 8px;
-    }
-
-    .code-body {
-      padding: 20px 24px;
-      font-family: var(--mono);
-      font-size: 0.82rem;
-      line-height: 1.8;
-      color: #8892b0;
-    }
-
-    .t-cyan { color: var(--cyan); }
-    .t-primary { color: #818cf8; }
-    .t-amber { color: var(--amber); }
-    .t-green { color: var(--green); }
-    .t-red { color: #f87171; }
-    .t-white { color: #e2e8f0; }
-    .t-comment { color: #3d4f6b; }
-
-    /* ── SECTIONS ── */
-    section {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 90px 24px;
-      position: relative;
-    }
-
-    .section-label {
-      font-family: var(--mono);
-      font-size: 0.72rem;
-      color: var(--cyan);
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      margin-bottom: 14px;
-    }
-
-    h2 {
-      font-size: clamp(1.8rem, 3.5vw, 2.6rem);
-      font-weight: 800;
-      letter-spacing: -0.03em;
-      margin-bottom: 16px;
-      line-height: 1.15;
-    }
-
-    .section-desc {
-      color: var(--muted);
-      max-width: 640px;
-      margin-bottom: 48px;
-      font-size: 1rem;
-    }
-
-    /* ── FEATURE GRID ── */
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 16px;
-    }
-
-    .feature-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 24px;
-      transition: border-color 0.25s, transform 0.25s;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .feature-card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, var(--primary), transparent);
-      opacity: 0;
-      transition: opacity 0.3s;
-    }
-
-    .feature-card:hover { border-color: var(--dim); transform: translateY(-3px); }
-    .feature-card:hover::before { opacity: 1; }
-
-    .feat-icon {
-      width: 38px; height: 38px;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.1rem;
-      margin-bottom: 16px;
-      background: rgba(90,103,242,0.1);
-      border: 1px solid rgba(90,103,242,0.2);
-    }
-
-    .feature-card h3 {
-      font-size: 0.95rem;
-      font-weight: 700;
-      margin-bottom: 8px;
-      letter-spacing: -0.01em;
-    }
-
-    .feature-card p {
-      font-size: 0.85rem;
-      color: var(--muted);
-      line-height: 1.6;
-    }
-
-    /* ── ARCHITECTURE ── */
-    .arch-wrapper {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 24px;
-      padding: 40px;
-    }
-
-    .arch-pipeline {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0;
-      margin-bottom: 40px;
-      flex-wrap: wrap;
-    }
-
-    .arch-step {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 20px 28px;
-      text-align: center;
-      min-width: 140px;
-      position: relative;
-      transition: border-color 0.25s;
-    }
-
-    .arch-step:hover { border-color: var(--primary); }
-
-    .arch-step-num {
-      font-family: var(--mono);
-      font-size: 0.65rem;
-      color: var(--cyan);
-      letter-spacing: 0.1em;
-      margin-bottom: 6px;
-    }
-
-    .arch-step-name {
-      font-weight: 700;
-      font-size: 1rem;
-    }
-
-    .arch-step-desc {
-      font-size: 0.75rem;
-      color: var(--muted);
-      margin-top: 4px;
-    }
-
-    .arch-arrow {
-      width: 48px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--dim);
-      font-size: 1.2rem;
-      flex-shrink: 0;
-    }
-
-    .arch-outputs {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 12px;
-      margin-top: 24px;
-    }
-
-    .arch-output {
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      padding: 14px 18px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-size: 0.85rem;
-    }
-
-    .arch-output-dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-
-    .dot-ready { background: var(--green); box-shadow: 0 0 8px var(--green); }
-    .dot-soon { background: var(--amber); }
-
-    .arch-output-name { font-weight: 700; }
-    .arch-output-status { font-size: 0.72rem; color: var(--muted); }
-
-    /* ── PLAYGROUND ── */
-    .playground {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-    }
-
-    .pg-panel {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      overflow: hidden;
-    }
-
-    .pg-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 20px;
-      border-bottom: 1px solid var(--border);
-      background: rgba(255,255,255,0.02);
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
-
-    .pg-tabs { display: flex; gap: 6px; }
-
-    .pg-tab {
-      padding: 5px 12px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      background: transparent;
-      color: var(--muted);
-      font-size: 0.75rem;
-      font-family: var(--sans);
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .pg-tab:hover { color: var(--text); border-color: var(--dim); }
-
-    .pg-tab.active {
-      background: var(--primary);
-      color: white;
-      border-color: var(--primary);
-      box-shadow: 0 4px 16px var(--primary-glow);
-    }
-
-    .pg-body {
-      padding: 20px;
-      font-family: var(--mono);
-      font-size: 0.78rem;
-      line-height: 1.8;
-      color: #8892b0;
-      min-height: 280px;
-    }
-
-    /* ── AST SECTION ── */
-    .ast-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 24px;
-    }
-
-    /* ── SYNTAX TABLE ── */
-    .syntax-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.875rem;
-    }
-
-    .syntax-table th {
-      text-align: left;
-      padding: 12px 16px;
-      background: var(--card);
-      border-bottom: 1px solid var(--border);
-      color: var(--muted);
-      font-size: 0.72rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      font-weight: 700;
-    }
-
-    .syntax-table td {
-      padding: 12px 16px;
-      border-bottom: 1px solid var(--border);
-      color: var(--text);
-      vertical-align: top;
-    }
-
-    .syntax-table tr:last-child td { border-bottom: none; }
-
-    .syntax-table tr:hover td { background: rgba(255,255,255,0.02); }
-
-    .token {
-      font-family: var(--mono);
-      font-size: 0.8rem;
-      background: rgba(90,103,242,0.12);
-      color: #818cf8;
-      padding: 2px 8px;
-      border-radius: 6px;
-      display: inline-block;
-    }
-
-    .token-cyan {
-      background: rgba(0,229,204,0.08);
-      color: var(--cyan);
-    }
-
-    /* ── ROADMAP ── */
-    .roadmap-list {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .roadmap-item {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      padding: 16px 20px;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      background: var(--card);
-      font-size: 0.9rem;
-    }
-
-    .rm-icon {
-      width: 28px; height: 28px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.75rem;
-      flex-shrink: 0;
-    }
-
-    .rm-done { background: rgba(34,197,94,0.15); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
-    .rm-next { background: rgba(90,103,242,0.15); color: #818cf8; border: 1px solid rgba(90,103,242,0.3); }
-    .rm-future { background: rgba(255,255,255,0.04); color: var(--dim); border: 1px solid var(--border); }
-
-    .rm-text { flex: 1; }
-    .rm-text strong { display: block; font-size: 0.875rem; margin-bottom: 2px; }
-    .rm-text span { font-size: 0.78rem; color: var(--muted); }
-
-    .rm-tag {
-      font-family: var(--mono);
-      font-size: 0.68rem;
-      padding: 3px 10px;
-      border-radius: 999px;
-      letter-spacing: 0.05em;
-    }
-
-    .tag-done { background: rgba(34,197,94,0.1); color: var(--green); }
-    .tag-next { background: rgba(90,103,242,0.1); color: #818cf8; }
-    .tag-future { background: rgba(255,255,255,0.05); color: var(--dim); }
-
-    /* ── USE CASES ── */
-    .usecase-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 16px;
-    }
-
-    .usecase-card {
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 24px;
-      background: var(--card);
-      transition: border-color 0.25s;
-    }
-
-    .usecase-card:hover { border-color: var(--primary); }
-
-    .uc-num {
-      font-family: var(--mono);
-      font-size: 0.68rem;
-      color: var(--primary);
-      margin-bottom: 10px;
-      letter-spacing: 0.1em;
-    }
-
-    .usecase-card h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 8px; }
-    .usecase-card p { font-size: 0.83rem; color: var(--muted); }
-
-    /* ── DIVIDER ── */
-    .divider {
-      width: 100%;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, var(--border), transparent);
-      margin: 0;
-    }
-
-    /* ── FOOTER ── */
-    footer {
-      border-top: 1px solid var(--border);
-      padding: 40px 48px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      color: var(--muted);
-      font-size: 0.82rem;
-    }
-
-    .footer-logo { font-family: var(--mono); color: var(--cyan); font-weight: 700; }
-
-    /* ── ANIMATIONS ── */
-    @keyframes fadeDown {
-      from { opacity: 0; transform: translateY(-16px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(16px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* ── RESPONSIVE ── */
-    @media (max-width: 768px) {
-      nav { padding: 14px 20px; }
-      .nav-links { display: none; }
-      .playground, .ast-grid, .usecase-grid { grid-template-columns: 1fr; }
-      .arch-pipeline { gap: 8px; }
-      .arch-arrow { display: none; }
-      footer { flex-direction: column; gap: 12px; text-align: center; }
-      .hero-stats { gap: 24px; }
-    }
-  </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FlexQL — Query Compiler Infrastructure</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:#07080c;
+  --surface:#0d0f15;
+  --card:#111318;
+  --border:#1b1e28;
+  --border-lit:#282d3d;
+  --text:#dde3f0;
+  --muted:#555e78;
+  --dim:#2a2f40;
+  --amber:#f0a800;
+  --amber-low:rgba(240,168,0,0.10);
+  --amber-glow:rgba(240,168,0,0.22);
+  --green:#22c55e;
+  --blue:#60a5fa;
+  --purple:#a78bfa;
+  --red:#f87171;
+  --mono:'IBM Plex Mono',monospace;
+  --display:'Bebas Neue',sans-serif;
+  --body:'DM Sans',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--body);background:var(--bg);color:var(--text);line-height:1.65;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+body::after{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:9000;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.04) 3px,rgba(0,0,0,0.04) 4px);
+}
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:500;height:54px;
+  display:flex;align-items:center;justify-content:space-between;padding:0 56px;
+  background:rgba(7,8,12,0.88);backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+}
+.nav-logo{font-family:var(--mono);font-weight:700;font-size:1rem;color:var(--amber);letter-spacing:.06em}
+.nav-links{display:flex;gap:32px;font-size:.82rem;color:var(--muted)}
+.nav-links a{transition:color .2s}.nav-links a:hover{color:var(--text)}
+.nav-gh{
+  padding:7px 18px;border-radius:6px;border:1px solid var(--border-lit);
+  font-family:var(--mono);font-size:.73rem;font-weight:700;color:var(--muted);
+  transition:all .2s;letter-spacing:.05em;
+}
+.nav-gh:hover{color:var(--amber);border-color:var(--amber);box-shadow:0 0 16px var(--amber-glow)}
+.hero{
+  display:grid;grid-template-columns:1fr 1fr;
+  min-height:100vh;padding-top:54px;overflow:hidden;
+}
+.hero-left{
+  padding:80px 56px 80px 72px;
+  display:flex;flex-direction:column;justify-content:center;
+  position:relative;
+}
+.hero-left::after{
+  content:'';position:absolute;right:0;top:10%;bottom:10%;
+  width:1px;background:linear-gradient(180deg,transparent,var(--border),transparent);
+}
+.compiler-badge{
+  display:inline-flex;align-items:center;gap:10px;
+  padding:7px 14px;border-radius:6px;
+  background:var(--amber-low);border:1px solid rgba(240,168,0,.25);
+  font-family:var(--mono);font-size:.68rem;font-weight:700;
+  color:var(--amber);letter-spacing:.1em;text-transform:uppercase;
+  margin-bottom:28px;width:fit-content;
+  animation:fadeUp .5s .05s ease both;
+}
+h1{
+  font-family:var(--display);
+  font-size:clamp(3.8rem,5.5vw,5.8rem);
+  line-height:.93;letter-spacing:.02em;
+  margin-bottom:28px;
+  animation:fadeUp .5s .15s ease both;
+}
+h1 em{color:var(--amber);font-style:normal}
+h1 .ghost{color:var(--dim)}
+.hero-sub{
+  font-size:.98rem;color:var(--muted);max-width:440px;
+  line-height:1.72;margin-bottom:40px;
+  animation:fadeUp .5s .25s ease both;
+}
+.hero-sub strong{color:var(--text)}
+.hero-btns{display:flex;gap:12px;flex-wrap:wrap;animation:fadeUp .5s .35s ease both}
+.btn-main{
+  padding:13px 26px;border-radius:7px;background:var(--amber);color:#000;
+  font-weight:700;font-size:.85rem;font-family:var(--mono);letter-spacing:.04em;
+  border:none;cursor:pointer;transition:all .2s;box-shadow:0 0 28px var(--amber-glow);
+}
+.btn-main:hover{transform:translateY(-2px);box-shadow:0 8px 36px var(--amber-glow)}
+.btn-outline{
+  padding:13px 26px;border-radius:7px;background:transparent;
+  color:var(--muted);font-weight:600;font-size:.85rem;font-family:var(--mono);
+  border:1px solid var(--border-lit);cursor:pointer;transition:all .2s;
+}
+.btn-outline:hover{color:var(--text);border-color:var(--muted)}
+.hero-stats{
+  display:flex;gap:0;margin-top:52px;
+  border:1px solid var(--border);border-radius:10px;overflow:hidden;
+  animation:fadeUp .5s .45s ease both;
+}
+.hero-stat{flex:1;padding:16px 0;text-align:center;border-right:1px solid var(--border)}
+.hero-stat:last-child{border-right:none}
+.hs-val{font-family:var(--mono);font-size:1.3rem;font-weight:700;color:var(--text)}
+.hs-label{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:2px}
+.hero-right{
+  background:var(--surface);
+  display:flex;align-items:center;justify-content:center;
+  padding:60px 56px;position:relative;overflow:hidden;
+}
+.hero-right::before{
+  content:'';position:absolute;inset:0;
+  background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);
+  background-size:36px 36px;opacity:.5;
+}
+.hero-right::after{
+  content:'';position:absolute;
+  width:400px;height:400px;border-radius:50%;
+  background:radial-gradient(circle,rgba(240,168,0,.07) 0%,transparent 70%);
+  top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;
+}
+.compile-viz{position:relative;z-index:2;width:100%;max-width:380px;display:flex;flex-direction:column;gap:0}
+.cv-row{opacity:0;transform:translateX(16px);transition:opacity .45s ease,transform .45s ease}
+.cv-row.show{opacity:1;transform:translateX(0)}
+.cv-stage{
+  background:var(--card);border:1px solid var(--border);border-radius:10px;
+  padding:14px 16px;position:relative;overflow:hidden;
+}
+.cv-stage::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:2px 0 0 2px}
+.cv-input .cv-stage::before{background:var(--amber)}
+.cv-validation .cv-stage::before{background:var(--red)}
+.cv-lexer .cv-stage::before{background:var(--purple)}
+.cv-parser .cv-stage::before{background:var(--blue)}
+.cv-adapter .cv-stage::before{background:var(--green)}
+.cv-tag{font-family:var(--mono);font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.cv-content{font-family:var(--mono);font-size:.75rem;line-height:1.7}
+.cv-arrow{height:22px;margin-left:20px;display:flex;align-items:center;color:var(--dim);font-size:.7rem}
+.cv-arrow::before{content:'';display:block;width:1px;height:100%;background:linear-gradient(180deg,var(--border-lit),var(--border));margin-right:8px}
+.tks{display:flex;flex-wrap:wrap;gap:3px}
+.tk{padding:2px 6px;border-radius:4px;font-size:.62rem;font-family:var(--mono)}
+.tk-id{background:rgba(167,139,250,.1);color:var(--purple)}
+.tk-op{background:rgba(240,168,0,.1);color:var(--amber)}
+.tk-val{background:rgba(34,197,94,.08);color:var(--green)}
+.tk-logic{background:rgba(255,255,255,.04);color:var(--muted)}
+.wrap{max-width:1120px;margin:0 auto;padding:96px 28px}
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease}
+.reveal.show{opacity:1;transform:translateY(0)}
+.tag{font-family:var(--mono);font-size:.65rem;font-weight:700;color:var(--amber);letter-spacing:.14em;text-transform:uppercase;display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.tag::before{content:'▸';font-size:.55rem}
+h2{font-family:var(--display);font-size:clamp(2.4rem,4vw,3.6rem);letter-spacing:.02em;line-height:.95;margin-bottom:18px}
+h2 em{color:var(--amber);font-style:normal}
+.desc{color:var(--muted);max-width:560px;margin-bottom:52px;font-size:.95rem;line-height:1.7}
+.sep{height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent)}
+/* compiler callout */
+.compiler-callout{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:56px}
+.cc-half{background:var(--card);padding:32px 36px}
+.cc-half h3{font-size:.8rem;font-weight:700;font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:16px}
+.cc-half p{font-size:.88rem;color:var(--muted);line-height:1.7}.cc-half p strong{color:var(--text)}
+.cc-half ul{list-style:none;display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.cc-half ul li{font-size:.84rem;color:var(--muted);display:flex;align-items:flex-start;gap:10px}
+.cc-half ul li::before{content:'→';color:var(--amber);font-family:var(--mono);font-size:.8rem;flex-shrink:0;margin-top:2px}
+.cc-highlight{background:rgba(240,168,0,.04);border-left:3px solid var(--amber)!important}
+.cc-highlight h3{color:var(--amber)}
+/* architecture */
+.arch-flow{display:flex;flex-direction:column;gap:0;position:relative}
+.arch-flow::before{content:'';position:absolute;left:26px;top:0;bottom:0;width:1px;background:linear-gradient(180deg,var(--amber),var(--blue),var(--green));opacity:.35}
+.arch-group{display:flex;gap:0;align-items:stretch;position:relative;z-index:1}
+.arch-group+.arch-group{margin-top:2px}
+.arch-gutter{width:54px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;padding-top:18px}
+.arch-gutter-num{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:.62rem;font-weight:700;border:1px solid var(--border-lit);background:var(--card);color:var(--muted)}
+.ag-amber .arch-gutter-num{border-color:var(--amber);color:var(--amber);background:var(--amber-low)}
+.ag-blue .arch-gutter-num{border-color:var(--blue);color:var(--blue);background:rgba(96,165,250,.08)}
+.ag-green .arch-gutter-num{border-color:var(--green);color:var(--green);background:rgba(34,197,94,.08)}
+.ag-purple .arch-gutter-num{border-color:var(--purple);color:var(--purple);background:rgba(167,139,250,.08)}
+.arch-body{flex:1;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:8px}
+.arch-body-title{font-weight:700;font-size:.88rem;margin-bottom:6px}
+.arch-body-sub{font-size:.8rem;color:var(--muted);line-height:1.6}
+.arch-substeps{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.arch-sub{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px}
+.arch-sub-name{font-size:.78rem;font-weight:700;margin-bottom:4px}
+.arch-sub-desc{font-size:.72rem;color:var(--muted);line-height:1.5}
+.arch-branches{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.arch-branch{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px;position:relative;overflow:hidden}
+.arch-branch::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.ab-nlp::before{background:var(--purple)}.ab-struct::before{background:var(--blue)}
+.arch-branch-name{font-size:.77rem;font-weight:700;margin-bottom:4px}
+.arch-branch-desc{font-size:.7rem;color:var(--muted);line-height:1.5}
+.adapters-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+.adapter-chip{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px;text-align:center;transition:border-color .2s}
+.adapter-chip:hover{border-color:var(--border-lit)}
+.adapter-dot{width:7px;height:7px;border-radius:50%;margin:0 auto 6px}
+.d-live{background:var(--green);box-shadow:0 0 7px rgba(34,197,94,.6)}
+.d-wip{background:var(--amber);box-shadow:0 0 7px var(--amber-glow)}
+.adapter-chip-name{font-size:.8rem;font-weight:700}
+.adapter-chip-label{font-size:.65rem;color:var(--muted);margin-top:2px}
+/* playground */
+.pg-wrap{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--border);border-radius:18px;overflow:hidden;background:var(--surface)}
+.pg-panel{border-right:1px solid var(--border)}.pg-panel:last-child{border-right:none}
+.pg-top{padding:14px 20px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.018);display:flex;align-items:center;justify-content:space-between}
+.pg-top-label{font-family:var(--mono);font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);display:flex;align-items:center;gap:7px}
+.pg-dot{width:6px;height:6px;border-radius:50%;background:var(--amber);box-shadow:0 0 6px var(--amber);animation:pulse 2.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}
+.pg-body{padding:20px;font-family:var(--mono);font-size:.76rem;line-height:1.85;min-height:280px}
+.o{color:var(--text)}.ok{color:var(--blue)}.os{color:var(--green)}.on{color:var(--amber)}.op{color:var(--purple)}.oc{color:var(--muted)}.oi{color:var(--red)}
+.ind{display:inline-block;width:16px}.ind2{display:inline-block;width:32px}.ind3{display:inline-block;width:48px}.ind4{display:inline-block;width:64px}
+.tabs{display:flex;gap:6px}
+.tab{padding:5px 13px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:.7rem;font-family:var(--mono);font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:.04em}
+.tab:hover{color:var(--text);border-color:var(--border-lit)}
+.tab.active{background:var(--amber);color:#000;border-color:var(--amber);box-shadow:0 0 14px var(--amber-glow)}
+/* syntax table */
+.stbl{width:100%;border-collapse:collapse;border:1px solid var(--border);border-radius:12px;overflow:hidden;font-size:.84rem}
+.stbl th{padding:11px 18px;background:var(--card);border-bottom:1px solid var(--border);text-align:left;font-family:var(--mono);font-size:.63rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+.stbl td{padding:11px 18px;border-bottom:1px solid var(--border);vertical-align:middle}
+.stbl tr:last-child td{border-bottom:none}
+.stbl tr:hover td{background:rgba(255,255,255,.015)}
+.chip{font-family:var(--mono);font-size:.73rem;padding:2px 8px;border-radius:5px;background:var(--amber-low);color:var(--amber);border:1px solid rgba(240,168,0,.2)}
+.chip-b{background:rgba(96,165,250,.08);color:var(--blue);border-color:rgba(96,165,250,.2)}
+/* roadmap */
+.rm-list{display:flex;flex-direction:column;gap:8px}
+.rm-row{display:flex;align-items:center;gap:14px;padding:15px 20px;border-radius:10px;border:1px solid var(--border);background:var(--card);transition:border-color .2s}
+.rm-row:hover{border-color:var(--border-lit)}
+.rm-ic{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:.65rem;font-weight:700}
+.ri-done{background:rgba(34,197,94,.12);color:var(--green);border:1px solid rgba(34,197,94,.25)}
+.ri-next{background:rgba(240,168,0,.1);color:var(--amber);border:1px solid rgba(240,168,0,.25)}
+.ri-later{background:rgba(255,255,255,.03);color:var(--dim);border:1px solid var(--border)}
+.rm-body{flex:1}.rm-body strong{font-size:.86rem;display:block;margin-bottom:2px}.rm-body span{font-size:.75rem;color:var(--muted)}
+.rm-pill{font-family:var(--mono);font-size:.62rem;padding:2px 9px;border-radius:999px}
+.rp-done{background:rgba(34,197,94,.08);color:var(--green)}
+.rp-next{background:rgba(240,168,0,.08);color:var(--amber)}
+.rp-later{background:rgba(255,255,255,.04);color:var(--dim)}
+/* cta */
+.cta{border:1px solid var(--border);border-radius:20px;background:var(--surface);padding:80px;text-align:center;position:relative;overflow:hidden}
+.cta::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 50% 50% at 50% 50%,rgba(240,168,0,.055),transparent)}
+.cta>*{position:relative}
+.cta h2{margin-bottom:14px}.cta p{color:var(--muted);max-width:440px;margin:0 auto 36px;font-size:.94rem}
+.cta-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+footer{border-top:1px solid var(--border);padding:28px 72px;display:flex;justify-content:space-between;align-items:center;font-size:.78rem;color:var(--muted)}
+.foot-logo{font-family:var(--mono);font-weight:700;color:var(--amber);font-size:.9rem}
+.foot-link{transition:color .2s}.foot-link:hover{color:var(--amber)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:900px){
+  nav{padding:0 20px}.nav-links{display:none}
+  .hero{grid-template-columns:1fr}.hero-right{display:none}
+  .hero-left{padding:48px 24px 60px}
+  .compiler-callout,.arch-substeps,.arch-branches,.adapters-row,.pg-wrap{grid-template-columns:1fr}
+  .pg-panel{border-right:none;border-bottom:1px solid var(--border)}
+  .cta{padding:48px 24px}
+  footer{flex-direction:column;gap:12px;text-align:center;padding:24px}
+}
+</style>
 </head>
 <body>
 
-<!-- NAV -->
 <nav>
-  <div class="nav-logo">FlexQL</div>
+  <div class="nav-logo">FLEXQL</div>
   <div class="nav-links">
-    <a href="#how-it-works">Architecture</a>
+    <a href="#why-compiler">Compiler</a>
+    <a href="#architecture">Architecture</a>
     <a href="#playground">Playground</a>
-    <a href="#syntax">Syntax</a>
     <a href="#roadmap">Roadmap</a>
   </div>
-  <a class="nav-cta" href="https://github.com/schart/FlexQL">GitHub ↗</a>
+  <a class="nav-gh" href="https://github.com/schart/FlexQL">GitHub ↗</a>
 </nav>
 
 <!-- HERO -->
 <div class="hero">
-  <div class="hero-grid"></div>
-  <div class="hero-glow"></div>
-  <div class="hero-glow-2"></div>
-
-  <div class="badge">
-    <span class="badge-dot"></span>
-    TypeScript · GPL-3.0 · v1 stable
-  </div>
-
-  <h1>
-    Query <span class="accent">Any</span> Database<br/>
-    <span class="dim-word">With One Language</span>
-  </h1>
-
-  <p class="hero-sub">
-    FlexQL is a compiler-style query engine that converts untrusted filter input into validated, injection-safe queries for SQL, Sequelize, MongoDB, and more.
-  </p>
-
-  <div class="hero-actions">
-    <a class="btn-primary" href="https://github.com/schart/FlexQL">View on GitHub</a>
-    <a class="btn-secondary" href="#playground">Live Demo →</a>
-  </div>
-
-  <!-- INLINE CODE PREVIEW -->
-  <div class="hero-code">
-    <div class="code-bar">
-      <div class="code-dot cd-r"></div>
-      <div class="code-dot cd-y"></div>
-      <div class="code-dot cd-g"></div>
-      <span class="code-filename">flexql.ts</span>
+  <div class="hero-left">
+    <div class="compiler-badge">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      A real query compiler — not a string parser
     </div>
-    <div class="code-body">
-      <span class="t-comment">// Your untrusted API input</span><br/>
-      <span class="t-primary">const</span> query <span class="t-cyan">=</span> <span class="t-amber">"username==heja;age>18,status==active"</span><br/><br/>
-      <span class="t-comment">// Compile to SQL — injection-safe</span><br/>
-      <span class="t-primary">const</span> result <span class="t-cyan">=</span> <span class="t-green">FlexQL</span>.compile(query, <span class="t-amber">'sql'</span>)<br/><br/>
-      <span class="t-comment">// ➜ WHERE username = ? AND age > ? OR status = ?</span><br/>
-      <span class="t-comment">// ➜ values: ["heja", 18, "active"]</span><br/><br/>
-      <span class="t-comment">// Swap adapter — same query, zero rewriting</span><br/>
-      <span class="t-green">FlexQL</span>.compile(query, <span class="t-amber">'mongodb'</span>)
-      <span class="t-comment"> // ✅ ready</span>
+    <h1>WRITE<br/><em>FILTERS.</em><br/>COMPILE TO<br/><span class="ghost">ANY DB.</span></h1>
+    <p class="hero-sub">
+      FlexQL takes untrusted filter strings through a
+      <strong>Validation → Lexer → Parser → AST → Adapter</strong>
+      pipeline and emits injection-safe queries for SQL, Sequelize, MongoDB, and Prisma.
+    </p>
+    <div class="hero-btns">
+      <a class="btn-main" href="https://github.com/schart/FlexQL">View on GitHub</a>
+      <a class="btn-outline" href="#playground">Live Demo</a>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="hs-val">100%</div><div class="hs-label">TypeScript</div></div>
+      <div class="hero-stat"><div class="hs-val">N-ary</div><div class="hs-label">AST Engine</div></div>
+      <div class="hero-stat"><div class="hs-val">4</div><div class="hs-label">Adapters</div></div>
+      <div class="hero-stat"><div class="hs-val">0</div><div class="hs-label">Raw Strings</div></div>
     </div>
   </div>
 
-  <div class="hero-stats">
-    <div class="stat">
-      <div class="stat-val">3</div>
-      <div class="stat-label">Adapters Live</div>
-    </div>
-    <div class="stat">
-      <div class="stat-val">100%</div>
-      <div class="stat-label">TypeScript</div>
-    </div>
-    <div class="stat">
-      <div class="stat-val">0</div>
-      <div class="stat-label">Raw SQL Strings</div>
-    </div>
-    <div class="stat">
-      <div class="stat-val">N-ary</div>
-      <div class="stat-label">AST Engine</div>
+  <div class="hero-right">
+    <div class="compile-viz" id="cviz">
+      <div class="cv-row cv-input" id="cv0">
+        <div class="cv-stage">
+          <div class="cv-tag" style="color:var(--amber)">Input Query String</div>
+          <div class="cv-content" style="color:var(--amber)">username==heja;age&gt;18,status==active</div>
+        </div>
+      </div>
+      <div class="cv-arrow">validation + lexical analysis</div>
+      <div class="cv-row cv-validation" id="cv1">
+        <div class="cv-stage">
+          <div class="cv-tag" style="color:var(--red)">Validation</div>
+          <div class="cv-content" style="color:var(--muted);font-size:.7rem">Check types · Reject invalid chars · Normalize params</div>
+        </div>
+      </div>
+      <div class="cv-arrow">tokenize</div>
+      <div class="cv-row cv-lexer" id="cv2">
+        <div class="cv-stage">
+          <div class="cv-tag" style="color:var(--purple)">Lexer — Token Stream</div>
+          <div class="cv-content">
+            <div class="tks">
+              <span class="tk tk-id">username</span><span class="tk tk-op">==</span><span class="tk tk-val">"heja"</span>
+              <span class="tk tk-logic">AND</span>
+              <span class="tk tk-id">age</span><span class="tk tk-op">&gt;</span><span class="tk tk-val">18</span>
+              <span class="tk tk-logic">OR</span>
+              <span class="tk tk-id">status</span><span class="tk tk-op">==</span><span class="tk tk-val">"active"</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="cv-arrow">parse → N-ary AST</div>
+      <div class="cv-row cv-parser" id="cv3">
+        <div class="cv-stage">
+          <div class="cv-tag" style="color:var(--blue)">Parser — AST</div>
+          <div class="cv-content" style="color:var(--muted);font-size:.72rem;line-height:1.6">
+            <span style="color:var(--blue)">OR</span><br/>
+            <span style="color:var(--dim)">├─ </span><span style="color:var(--blue)">AND</span><br/>
+            <span style="color:var(--dim)">│&nbsp;&nbsp;├─ </span><span style="color:var(--purple)">username</span><span style="color:var(--muted)">==</span><span style="color:var(--green)">"heja"</span><br/>
+            <span style="color:var(--dim)">│&nbsp;&nbsp;└─ </span><span style="color:var(--purple)">age</span><span style="color:var(--muted)">&gt;</span><span style="color:var(--amber)">18</span><br/>
+            <span style="color:var(--dim)">└─ </span><span style="color:var(--purple)">status</span><span style="color:var(--muted)">==</span><span style="color:var(--green)">"active"</span>
+          </div>
+        </div>
+      </div>
+      <div class="cv-arrow">compile output</div>
+      <div class="cv-row cv-adapter" id="cv4">
+        <div class="cv-stage">
+          <div class="cv-tag" style="color:var(--green)">Adapter — Safe Output</div>
+          <div class="cv-content" style="color:var(--muted);font-size:.7rem">
+            WHERE username = <span style="color:var(--green)">?</span> AND age &gt; <span style="color:var(--green)">?</span> OR status = <span style="color:var(--green)">?</span><br/>
+            values: [<span style="color:var(--green)">"heja"</span>, <span style="color:var(--amber)">18</span>, <span style="color:var(--green)">"active"</span>]
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
-<div class="divider"></div>
+<div class="sep"></div>
 
-<!-- FEATURES -->
-<section id="features">
-  <div class="section-label">Why FlexQL</div>
-  <h2>Built for Safety.<br/>Designed for Scale.</h2>
-  <p class="section-desc">Modern applications need flexible filtering without exposing SQL, coupling ORM logic to APIs, or creating injection vulnerabilities.</p>
-
-  <div class="features-grid">
-    <div class="feature-card">
-      <div class="feat-icon">🧠</div>
-      <h3>Human-Readable Syntax</h3>
-      <p>Queries stay understandable as complexity grows. No nested JSON objects, no raw SQL strings, no ORM-specific conditions.</p>
+<!-- WHY COMPILER -->
+<div class="wrap reveal" id="why-compiler">
+  <div class="tag">Design Philosophy</div>
+  <h2>A <em>COMPILER</em>,<br/>NOT AN INTERPRETER</h2>
+  <p class="desc">Most query helpers evaluate filter logic at runtime. FlexQL compiles it — the distinction matters deeply for safety, portability, and predictability.</p>
+  <div class="compiler-callout">
+    <div class="cc-half">
+      <h3>❌ Interpreter Approach</h3>
+      <p>Reads the filter string and <strong>directly executes</strong> it against data. Runtime and logic are coupled — you can't separate "what" from "how".</p>
+      <ul>
+        <li>Evaluates input at runtime — hard to audit</li>
+        <li>Injection risk if any path allows raw passthrough</li>
+        <li>Tied to one execution model — can't retarget backends</li>
+        <li>No intermediate representation to validate or optimize</li>
+      </ul>
     </div>
-    <div class="feature-card">
-      <div class="feat-icon">🔒</div>
-      <h3>Injection-Safe by Design</h3>
-      <p>All values are validated and parameterized. FlexQL never concatenates raw user input — safety is architectural, not optional.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feat-icon">🔀</div>
-      <h3>Customizable Separators</h3>
-      <p>Default <code style="font-family:var(--mono);font-size:0.8em;color:var(--cyan)">;</code> for AND and <code style="font-family:var(--mono);font-size:0.8em;color:var(--cyan)">,</code> for OR — both are fully configurable to match your domain conventions.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feat-icon">🌍</div>
-      <h3>Adapter-Based Output</h3>
-      <p>SQL, Sequelize, and MongoDB are live today. Elasticsearch is on the roadmap. Compile once, target any backend.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feat-icon">🧱</div>
-      <h3>Real Query Engine</h3>
-      <p>Lexer → Parser → N-ary AST → Adapter. FlexQL understands logical precedence and structure — it's not a string replacement tool.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feat-icon">🧩</div>
-      <h3>Easy to Extend</h3>
-      <p>Create new adapters quickly with the modular architecture. Validated syntax with type checking is included out of the box.</p>
+    <div class="cc-half cc-highlight">
+      <h3>✅ FlexQL — Compiler Approach</h3>
+      <p>Transforms the filter string into a <strong>backend-specific query structure</strong>. Input is never executed — it's compiled.</p>
+      <ul>
+        <li>Input → Tokens → AST → Target output. Fully auditable pipeline</li>
+        <li>Values always bound as parameters, never concatenated</li>
+        <li>Swap adapters without touching filter logic</li>
+        <li>AST can be validated, cached, or optimized before compilation</li>
+      </ul>
     </div>
   </div>
-</section>
+</div>
 
-<div class="divider"></div>
+<div class="sep"></div>
 
 <!-- ARCHITECTURE -->
-<section id="how-it-works">
-  <div class="section-label">Architecture</div>
-  <h2>Deterministic<br/>Compilation Pipeline</h2>
-  <p class="section-desc">Untrusted input is never executed directly. It passes through a structured pipeline — parsed, validated, and transformed before any backend ever sees it.</p>
+<div class="wrap reveal" id="architecture">
+  <div class="tag">Architecture</div>
+  <h2>THE FULL<br/><em>PIPELINE</em></h2>
+  <p class="desc">Every query passes through a deterministic, layered compilation pipeline. No step is skipped, no raw input reaches any backend.</p>
 
-  <div class="arch-wrapper">
-    <div class="arch-pipeline">
-      <div class="arch-step">
-        <div class="arch-step-num">01 — LEXER</div>
-        <div class="arch-step-name">Tokenize</div>
-        <div class="arch-step-desc">Normalize raw input into a strict token stream. Reject invalid characters immediately.</div>
-      </div>
-      <div class="arch-arrow">→</div>
-      <div class="arch-step">
-        <div class="arch-step-num">02 — PARSER</div>
-        <div class="arch-step-name">Build AST</div>
-        <div class="arch-step-desc">Validate token order and construct an N-ary AST. Enforce AND/OR precedence.</div>
-      </div>
-      <div class="arch-arrow">→</div>
-      <div class="arch-step">
-        <div class="arch-step-num">03 — ADAPTER</div>
-        <div class="arch-step-name">Compile</div>
-        <div class="arch-step-desc">Walk the AST and emit backend-specific parameterized output. Never raw strings.</div>
+  <div class="arch-flow">
+
+    <div class="arch-group ag-amber">
+      <div class="arch-gutter"><div class="arch-gutter-num">1</div></div>
+      <div class="arch-body">
+        <div class="arch-body-title">Developer's App</div>
+        <div class="arch-body-sub">A UserRequest arrives via HTTP / query params. The developer's application passes the raw query string into the FlexQL function — one call in, compiled output out.</div>
       </div>
     </div>
 
-    <div style="margin-bottom:20px;font-size:0.8rem;color:var(--muted);text-align:center">Adapter outputs</div>
+    <div style="height:10px;margin-left:26px;border-left:1px dashed var(--border-lit)"></div>
 
-    <div class="arch-outputs">
-      <div class="arch-output">
-        <div class="arch-output-dot dot-ready"></div>
-        <div>
-          <div class="arch-output-name">SQL</div>
-          <div class="arch-output-status">Parameterized · Live</div>
-        </div>
-      </div>
-      <div class="arch-output">
-        <div class="arch-output-dot dot-ready"></div>
-        <div>
-          <div class="arch-output-name">Sequelize</div>
-          <div class="arch-output-status">ORM conditions · Live</div>
-        </div>
-      </div>
-      <div class="arch-output">
-        <div class="arch-output-dot dot-ready"></div>
-        <div>
-          <div class="arch-output-name">MongoDB</div>
-          <div class="arch-output-status">$or / $and filter · Live</div>
-        </div>
-      </div>
-      <div class="arch-output">
-        <div class="arch-output-dot dot-soon"></div>
-        <div>
-          <div class="arch-output-name">Elasticsearch</div>
-          <div class="arch-output-status">Query DSL · Coming soon</div>
+    <div class="arch-group ag-purple">
+      <div class="arch-gutter"><div class="arch-gutter-num">2</div></div>
+      <div class="arch-body">
+        <div class="arch-body-title">Lexical Analysis</div>
+        <div class="arch-body-sub">Before any parsing, the raw string is validated and tokenized. Invalid input is rejected here — nothing malformed ever reaches the parser.</div>
+        <div class="arch-substeps">
+          <div class="arch-sub">
+            <div class="arch-sub-name" style="color:var(--red)">Validation</div>
+            <div class="arch-sub-desc">Rejects invalid chars, checks types, normalizes parameters. Pipeline stops immediately on failure.</div>
+          </div>
+          <div class="arch-sub">
+            <div class="arch-sub-name" style="color:var(--purple)">Lexer</div>
+            <div class="arch-sub-desc">Converts the validated string into a strict token stream: identifiers, operators, values, separators.</div>
+          </div>
         </div>
       </div>
     </div>
+
+    <div style="height:10px;margin-left:26px;border-left:1px dashed var(--border-lit)"></div>
+
+    <div class="arch-group ag-blue">
+      <div class="arch-gutter"><div class="arch-gutter-num">3</div></div>
+      <div class="arch-body">
+        <div class="arch-body-title">Parser — AST Construction</div>
+        <div class="arch-body-sub">The parser detects whether the input is natural language or structured syntax, routes accordingly, and produces a Normalized AST Tree. The AST-Flatter unifies both paths into a single flat structure.</div>
+        <div style="display:flex;align-items:center;gap:12px;margin:12px 0">
+          <div style="width:34px;height:34px;transform:rotate(45deg);background:var(--surface);border:1px solid var(--border-lit);flex-shrink:0;display:flex;align-items:center;justify-content:center">
+            <span style="transform:rotate(-45deg);font-size:.5rem;font-family:var(--mono);color:var(--blue);text-align:center;line-height:1.2">NLP?</span>
+          </div>
+          <div style="font-size:.78rem;color:var(--muted)">Detect: free-form natural language input, or structured FlexQL syntax?</div>
+        </div>
+        <div class="arch-branches">
+          <div class="arch-branch ab-nlp">
+            <div class="arch-branch-name" style="color:var(--purple)">AI-AST-Parser</div>
+            <div class="arch-branch-desc">Natural language queries. AI model converts free-form text into a Normalized AST Tree (NAT).</div>
+          </div>
+          <div class="arch-branch ab-struct">
+            <div class="arch-branch-name" style="color:var(--blue)">Structured-AST-Parser</div>
+            <div class="arch-branch-desc">Standard FlexQL syntax. Builds N-ary AST directly from the token stream.</div>
+          </div>
+        </div>
+        <div style="margin-top:10px;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px">
+          <div style="font-size:.68rem;font-family:var(--mono);color:var(--blue);margin-bottom:4px;font-weight:700">AST-FLATTER</div>
+          <div style="font-size:.77rem;color:var(--muted)">Both paths converge here. Flatter normalizes both NATs into a single unified flat AST — adapters see one consistent format regardless of input type.</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="height:10px;margin-left:26px;border-left:1px dashed var(--border-lit)"></div>
+
+    <div class="arch-group ag-amber">
+      <div class="arch-gutter"><div class="arch-gutter-num">4</div></div>
+      <div class="arch-body">
+        <div class="arch-body-title">Router — Mapper</div>
+        <div class="arch-body-sub">The Router dispatches the flat AST to the Mapper, which performs database-specific query mapping for each target adapter. Each adapter receives a mapping tailored to its own query model.</div>
+      </div>
+    </div>
+
+    <div style="height:10px;margin-left:26px;border-left:1px dashed var(--border-lit)"></div>
+
+    <div class="arch-group ag-green">
+      <div class="arch-gutter"><div class="arch-gutter-num">5</div></div>
+      <div class="arch-body">
+        <div class="arch-body-title">Adapters — Compiled Output</div>
+        <div class="arch-body-sub" style="margin-bottom:12px">Each adapter walks the mapped AST and emits fully parameterized, database-specific query structures. Values are always bound — no raw strings ever emitted.</div>
+        <div class="adapters-row">
+          <div class="adapter-chip">
+            <div class="adapter-dot d-live"></div>
+            <div class="adapter-chip-name">SQL</div>
+            <div class="adapter-chip-label">Live</div>
+          </div>
+          <div class="adapter-chip">
+            <div class="adapter-dot d-live"></div>
+            <div class="adapter-chip-name">Sequelize</div>
+            <div class="adapter-chip-label">Live</div>
+          </div>
+          <div class="adapter-chip">
+            <div class="adapter-dot d-wip"></div>
+            <div class="adapter-chip-name">MongoDB</div>
+            <div class="adapter-chip-label">Coming soon</div>
+          </div>
+          <div class="adapter-chip">
+            <div class="adapter-dot d-wip"></div>
+            <div class="adapter-chip-name">Prisma</div>
+            <div class="adapter-chip-label">Coming soon</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
-</section>
+</div>
 
-<div class="divider"></div>
-
-<!-- AST SECTION -->
-<section id="ast">
-  <div class="section-label">Under the Hood</div>
-  <h2>Not a String Parser.<br/>A Real Query Engine.</h2>
-  <p class="section-desc">FlexQL constructs a full N-ary Abstract Syntax Tree that captures logical structure, precedence, and intent before any adapter runs.</p>
-
-  <div class="ast-grid">
-    <div class="pg-panel">
-      <div class="pg-header">FlexQL Input</div>
-      <div class="pg-body">
-        <span class="t-comment">// Input query string</span><br/>
-        <span class="t-amber">"username==heja;age>18,status==active"</span><br/><br/>
-        <span class="t-comment">// Parsed as:</span><br/>
-        <span class="t-comment">// (username == "heja" AND age > 18)</span><br/>
-        <span class="t-comment">// OR</span><br/>
-        <span class="t-comment">// (status == "active")</span><br/><br/>
-        <span class="t-comment">// Separator key:</span><br/>
-        <span class="t-cyan">;</span> <span class="t-comment">→ AND (higher precedence)</span><br/>
-        <span class="t-cyan">,</span> <span class="t-comment">→ OR (lower precedence)</span>
-      </div>
-    </div>
-    <div class="pg-panel">
-      <div class="pg-header">Generated AST</div>
-      <div class="pg-body">
-        {<br/>
-        &nbsp;&nbsp;<span class="t-cyan">"type"</span>: <span class="t-amber">"OR"</span>,<br/>
-        &nbsp;&nbsp;<span class="t-cyan">"children"</span>: [<br/>
-        &nbsp;&nbsp;&nbsp;&nbsp;{<br/>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-cyan">"type"</span>: <span class="t-amber">"AND"</span>,<br/>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-cyan">"children"</span>: [<br/>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ <span class="t-cyan">"field"</span>: <span class="t-amber">"username"</span>, <span class="t-cyan">"op"</span>: <span class="t-amber">"=="</span>, <span class="t-cyan">"value"</span>: <span class="t-amber">"heja"</span> },<br/>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ <span class="t-cyan">"field"</span>: <span class="t-amber">"age"</span>, <span class="t-cyan">"op"</span>: <span class="t-amber">">"</span>, <span class="t-cyan">"value"</span>: <span class="t-green">18</span> }<br/>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;]<br/>
-        &nbsp;&nbsp;&nbsp;&nbsp;},<br/>
-        &nbsp;&nbsp;&nbsp;&nbsp;{ <span class="t-cyan">"field"</span>: <span class="t-amber">"status"</span>, <span class="t-cyan">"op"</span>: <span class="t-amber">"=="</span>, <span class="t-cyan">"value"</span>: <span class="t-amber">"active"</span> }<br/>
-        &nbsp;&nbsp;]<br/>
-        }
-      </div>
-    </div>
-  </div>
-</section>
-
-<div class="divider"></div>
+<div class="sep"></div>
 
 <!-- PLAYGROUND -->
-<section id="playground">
-  <div class="section-label">Live Demo</div>
-  <h2>One Query.<br/>Three Backends.</h2>
-  <p class="section-desc">See how the same FlexQL expression compiles to SQL, Sequelize, and MongoDB — each injection-safe and ready to use.</p>
+<div class="wrap reveal" id="playground">
+  <div class="tag">Live Demo</div>
+  <h2>ONE QUERY,<br/><em>TWO BACKENDS</em></h2>
+  <p class="desc">See how the same FlexQL expression compiles to SQL and Sequelize — both injection-safe and ready to use directly in your codebase.</p>
 
-  <div class="playground">
+  <div class="pg-wrap">
     <div class="pg-panel">
-      <div class="pg-header">FlexQL Input</div>
-      <div class="pg-body">
-        <span class="t-cyan">username</span><span class="t-white">==</span><span class="t-amber">heja</span><span class="t-white">;</span><span class="t-cyan">age</span><span class="t-white">></span><span class="t-green">18</span><span class="t-white">,</span><span class="t-cyan">status</span><span class="t-white">==</span><span class="t-amber">active</span><br/><br/>
-        <span class="t-comment">// Complex example:</span><br/>
-        <span class="t-cyan">username</span><span class="t-white">==</span><span class="t-amber">"heja"</span><span class="t-white">,</span><span class="t-cyan">country</span><span class="t-white">==</span><span class="t-amber">"NL"</span><span class="t-white">;</span><br/>
-        <span class="t-cyan">score</span><span class="t-white">></span><span class="t-green">90</span><span class="t-white">,</span><span class="t-cyan">rank</span><span class="t-white">>=</span><span class="t-green">5</span><span class="t-white">;</span><br/>
-        <span class="t-cyan">active</span><span class="t-white">==</span><span class="t-green">true</span><span class="t-white">,</span><span class="t-cyan">verified</span><span class="t-white">==</span><span class="t-green">true</span><br/><br/>
-        <span class="t-comment">// Operator set:</span><br/>
-        <span class="t-cyan">==  !=  &gt;  &lt;  &gt;=  &lt;=</span>
+      <div class="pg-top">
+        <div class="pg-top-label"><span class="pg-dot"></span>FlexQL Input</div>
       </div>
-    </div>
-
-    <div class="pg-panel">
-      <div class="pg-header">
-        Compiled Output
-        <div class="pg-tabs">
-          <button class="pg-tab active" data-target="sql">SQL</button>
-          <button class="pg-tab" data-target="sequelize">Sequelize</button>
-          <button class="pg-tab" data-target="mongo">MongoDB</button>
+      <div class="pg-body">
+        <div style="color:var(--muted);font-size:.63rem;font-family:var(--mono);letter-spacing:.1em;margin-bottom:12px">QUERY STRING</div>
+        <div style="padding:12px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;margin-bottom:20px">
+          <span style="color:var(--purple)">username</span><span style="color:var(--amber)">==</span><span style="color:var(--green)">"heja"</span><span style="color:var(--text)">;</span><span style="color:var(--purple)">age</span><span style="color:var(--amber)">&gt;</span><span style="color:#f97316">18</span><span style="color:var(--text)">,</span><span style="color:var(--purple)">status</span><span style="color:var(--amber)">==</span><span style="color:var(--green)">"active"</span>
+        </div>
+        <div style="color:var(--muted);font-size:.63rem;font-family:var(--mono);letter-spacing:.1em;margin-bottom:10px">PARSED LOGIC</div>
+        <div style="padding:14px 16px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:.75rem;line-height:2">
+          <span style="color:var(--text)">(</span>
+          <span style="color:var(--purple)">username</span> <span style="color:var(--muted)">==</span> <span style="color:var(--green)">"heja"</span>
+          <span style="color:var(--blue)"> AND </span>
+          <span style="color:var(--purple)">age</span> <span style="color:var(--muted)">&gt;</span> <span style="color:#f97316">18</span>
+          <span style="color:var(--text)">)</span><br/>
+          <span style="color:var(--amber)">OR</span><br/>
+          <span style="color:var(--text)">(</span>
+          <span style="color:var(--purple)">status</span> <span style="color:var(--muted)">==</span> <span style="color:var(--green)">"active"</span>
+          <span style="color:var(--text)">)</span>
+        </div>
+        <div style="margin-top:16px;font-size:.68rem;color:var(--muted);font-family:var(--mono)">
+          <span style="color:var(--amber)">;</span>&nbsp;=&nbsp;AND&nbsp;&nbsp;·&nbsp;&nbsp;<span style="color:var(--amber)">,</span>&nbsp;=&nbsp;OR&nbsp;&nbsp;·&nbsp;&nbsp;AND binds tighter than OR
         </div>
       </div>
-      <div class="pg-body" id="pg-output"></div>
+    </div>
+
+    <div class="pg-panel" style="border-right:none">
+      <div class="pg-top">
+        <div class="pg-top-label">Compiled Output</div>
+        <div class="tabs">
+          <button class="tab active" data-t="sql">SQL</button>
+          <button class="tab" data-t="sequelize">Sequelize</button>
+        </div>
+      </div>
+      <div class="pg-body" id="pgout"></div>
     </div>
   </div>
-</section>
+</div>
 
-<div class="divider"></div>
+<div class="sep"></div>
 
-<!-- SYNTAX REFERENCE -->
-<section id="syntax">
-  <div class="section-label">Syntax Reference</div>
-  <h2>Complete<br/>Language Spec</h2>
-  <p class="section-desc">FlexQL's syntax is intentionally compact and readable. Every element has a defined role in the compilation pipeline.</p>
-
-  <div style="border:1px solid var(--border);border-radius:16px;overflow:hidden">
-    <table class="syntax-table">
-      <thead>
-        <tr>
-          <th>Element</th>
-          <th>Description</th>
-          <th>Examples</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><span class="token">Identifier</span></td>
-          <td style="color:var(--muted)">Column or field name in your data model</td>
-          <td><code style="font-family:var(--mono);font-size:0.8em;color:var(--cyan)">username</code>, <code style="font-family:var(--mono);font-size:0.8em;color:var(--cyan)">age</code>, <code style="font-family:var(--mono);font-size:0.8em;color:var(--cyan)">created_at</code></td>
-        </tr>
-        <tr>
-          <td><span class="token">Operator</span></td>
-          <td style="color:var(--muted)">Comparison operator between field and value</td>
-          <td><code style="font-family:var(--mono);font-size:0.8em;color:var(--cyan)">==  !=  &gt;  &lt;  &gt;=  &lt;=</code></td>
-        </tr>
-        <tr>
-          <td><span class="token token-cyan">;</span></td>
-          <td style="color:var(--muted)">AND separator — binds tighter than OR (customizable)</td>
-          <td><code style="font-family:var(--mono);font-size:0.8em;color:var(--muted)">name==x<span style="color:var(--cyan)">;</span>age>18</code></td>
-        </tr>
-        <tr>
-          <td><span class="token token-cyan">,</span></td>
-          <td style="color:var(--muted)">OR separator — lower precedence (customizable)</td>
-          <td><code style="font-family:var(--mono);font-size:0.8em;color:var(--muted)">status==a<span style="color:var(--cyan)">,</span>status==b</code></td>
-        </tr>
-        <tr>
-          <td><span class="token">Value</span></td>
-          <td style="color:var(--muted)">String, number, boolean, or date literal</td>
-          <td><code style="font-family:var(--mono);font-size:0.8em;color:var(--cyan)">"heja"</code>, <code style="font-family:var(--mono);font-size:0.8em;color:var(--cyan)">18</code>, <code style="font-family:var(--mono);font-size:0.8em;color:var(--cyan)">true</code>, <code style="font-family:var(--mono);font-size:0.8em;color:var(--cyan)">2025-01-01</code></td>
-        </tr>
-      </tbody>
-    </table>
+<!-- SYNTAX -->
+<div class="wrap reveal" id="syntax">
+  <div class="tag">Language Reference</div>
+  <h2>SYNTAX<br/><em>REFERENCE</em></h2>
+  <p class="desc">FlexQL's syntax is intentionally compact. Every token has a defined role in the compilation pipeline.</p>
+  <table class="stbl">
+    <thead>
+      <tr><th>Element</th><th>Role in Pipeline</th><th>Examples</th><th>Notes</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="chip">Identifier</span></td>
+        <td style="color:var(--muted)">Field name — becomes IDENTIFIER token in lexer</td>
+        <td><code style="font-family:var(--mono);font-size:.77rem;color:var(--purple)">username, age, created_at</code></td>
+        <td style="color:var(--muted);font-size:.78rem">No spaces allowed</td>
+      </tr>
+      <tr>
+        <td><span class="chip">Operator</span></td>
+        <td style="color:var(--muted)">Comparison — mapped per adapter in output</td>
+        <td><code style="font-family:var(--mono);font-size:.77rem;color:var(--amber)">== != &gt; &lt; &gt;= &lt;=</code></td>
+        <td style="color:var(--muted);font-size:.78rem">All 6 supported</td>
+      </tr>
+      <tr>
+        <td><span class="chip chip-b">;</span></td>
+        <td style="color:var(--muted)">AND separator — higher precedence</td>
+        <td><code style="font-family:var(--mono);font-size:.77rem;color:var(--muted)">name==x<span style="color:var(--amber)">;</span>age&gt;18</code></td>
+        <td style="color:var(--muted);font-size:.78rem">Default, configurable</td>
+      </tr>
+      <tr>
+        <td><span class="chip chip-b">,</span></td>
+        <td style="color:var(--muted)">OR separator — lower precedence</td>
+        <td><code style="font-family:var(--mono);font-size:.77rem;color:var(--muted)">status==a<span style="color:var(--amber)">,</span>status==b</code></td>
+        <td style="color:var(--muted);font-size:.78rem">Default, configurable</td>
+      </tr>
+      <tr>
+        <td><span class="chip">Value</span></td>
+        <td style="color:var(--muted)">Literal — always bound as a parameter, never concatenated</td>
+        <td><code style="font-family:var(--mono);font-size:.77rem;color:var(--green)">"heja", 18, true, 2025-01-01</code></td>
+        <td style="color:var(--muted);font-size:.78rem">String, number, boolean, date</td>
+      </tr>
+    </tbody>
+  </table>
+  <div style="margin-top:14px;padding:13px 18px;background:rgba(240,168,0,.05);border:1px solid rgba(240,168,0,.15);border-radius:8px;font-size:.81rem;color:var(--muted)">
+    ⚠ <strong style="color:var(--text)">Spaces cannot be used as separators.</strong> Use <code style="font-family:var(--mono);color:var(--amber)">;</code> for AND and <code style="font-family:var(--mono);color:var(--amber)">,</code> for OR. Both are configurable.
   </div>
+</div>
 
-  <div style="margin-top:20px;padding:16px 20px;background:rgba(0,229,204,0.05);border:1px solid rgba(0,229,204,0.15);border-radius:12px;font-size:0.82rem;color:var(--muted)">
-    ⚠️ <strong style="color:var(--text)">Note:</strong> Spaces cannot be used as separators in the query string. Use <code style="font-family:var(--mono);color:var(--cyan)">;</code> and <code style="font-family:var(--mono);color:var(--cyan)">,</code> to separate conditions.
-  </div>
-</section>
-
-<div class="divider"></div>
-
-<!-- USE CASES -->
-<section id="use-cases">
-  <div class="section-label">Use Cases</div>
-  <h2>Built for Real<br/>Production Systems</h2>
-  <p class="section-desc">FlexQL is designed for environments where flexibility, security, and portability all matter at the same time.</p>
-
-  <div class="usecase-grid">
-    <div class="usecase-card">
-      <div class="uc-num">01</div>
-      <h3>Admin Dashboards</h3>
-      <p>Advanced user-defined filters without exposing SQL to your frontend. Power complex data grids safely.</p>
-    </div>
-    <div class="usecase-card">
-      <div class="uc-num">02</div>
-      <h3>Public APIs</h3>
-      <p>Accept dynamic filtering via query parameters with zero injection risk. Validate and compile in one step.</p>
-    </div>
-    <div class="usecase-card">
-      <div class="uc-num">03</div>
-      <h3>Multi-ORM Backends</h3>
-      <p>One filter language across multiple databases. Migrate your backend without rewriting your filter logic.</p>
-    </div>
-    <div class="usecase-card">
-      <div class="uc-num">04</div>
-      <h3>Rule Engines</h3>
-      <p>Store and execute logical rules as readable, portable strings. Human-readable and machine-executable.</p>
-    </div>
-  </div>
-</section>
-
-<div class="divider"></div>
+<div class="sep"></div>
 
 <!-- ROADMAP -->
-<section id="roadmap">
-  <div class="section-label">Roadmap</div>
-  <h2>What's Built.<br/>What's Next.</h2>
-  <p class="section-desc">FlexQL ships with a production-ready core. The roadmap extends toward a universal query standard for modern application architectures.</p>
+<div class="wrap reveal" id="roadmap">
+  <div class="tag">Roadmap</div>
+  <h2>WHAT'S <em>BUILT.</em><br/>WHAT'S NEXT.</h2>
+  <p class="desc">The core compiler pipeline ships production-ready. The roadmap expands adapter coverage and adds NLP-powered natural language querying.</p>
+  <div class="rm-list">
+    <div class="rm-row"><div class="rm-ic ri-done">✓</div><div class="rm-body"><strong>Core Compiler Pipeline</strong><span>Validation → Lexer → Parser → N-ary AST → Adapter architecture in TypeScript</span></div><span class="rm-pill rp-done">Shipped</span></div>
+    <div class="rm-row"><div class="rm-ic ri-done">✓</div><div class="rm-body"><strong>SQL Adapter</strong><span>Parameterized WHERE clause — safe from injection by construction</span></div><span class="rm-pill rp-done">Shipped</span></div>
+    <div class="rm-row"><div class="rm-ic ri-done">✓</div><div class="rm-body"><strong>Sequelize Adapter</strong><span>ORM-compatible Op.or / Op.and condition objects, usable directly in Model.findAll()</span></div><span class="rm-pill rp-done">Shipped</span></div>
+    <div class="rm-row"><div class="rm-ic ri-next">→</div><div class="rm-body"><strong>MongoDB Adapter</strong><span>Native $or / $and filter objects for MongoDB driver and Mongoose</span></div><span class="rm-pill rp-next">Coming Soon</span></div>
+    <div class="rm-row"><div class="rm-ic ri-next">→</div><div class="rm-body"><strong>Prisma Adapter</strong><span>Prisma-compatible where clause generation for type-safe ORM integration</span></div><span class="rm-pill rp-next">Coming Soon</span></div>
+    <div class="rm-row"><div class="rm-ic ri-next">→</div><div class="rm-body"><strong>AI-AST-Parser (NLP Path)</strong><span>Accept natural language — "users older than 18 who are active" — and compile to the same AST</span></div><span class="rm-pill rp-next">Coming Soon</span></div>
+    <div class="rm-row"><div class="rm-ic ri-later">○</div><div class="rm-body"><strong>Elasticsearch Adapter</strong><span>Query DSL output for full-text and structured search</span></div><span class="rm-pill rp-later">Planned</span></div>
+    <div class="rm-row"><div class="rm-ic ri-later">○</div><div class="rm-body"><strong>Parenthesis &amp; Nested Expressions</strong><span>Explicit grouping for complex multi-level logic</span></div><span class="rm-pill rp-later">Planned</span></div>
+    <div class="rm-row"><div class="rm-ic ri-later">○</div><div class="rm-body"><strong>Type Inference &amp; Schema Validation</strong><span>Validate field types against your schema at compile time</span></div><span class="rm-pill rp-later">Planned</span></div>
+    <div class="rm-row"><div class="rm-ic ri-later">○</div><div class="rm-body"><strong>Query Optimizer</strong><span>Simplify and deduplicate redundant conditions in the AST before compilation</span></div><span class="rm-pill rp-later">Planned</span></div>
+    <div class="rm-row"><div class="rm-ic ri-later">○</div><div class="rm-body"><strong>Interactive FlexQL Playground</strong><span>Browser-based live compiler with real-time adapter output across all targets</span></div><span class="rm-pill rp-later">Planned</span></div>
+  </div>
+</div>
 
-  <ul class="roadmap-list">
-    <li class="roadmap-item">
-      <div class="rm-icon rm-done">✓</div>
-      <div class="rm-text">
-        <strong>Core Language & SQL Adapter</strong>
-        <span>Lexer → Parser → N-ary AST → parameterized SQL output</span>
-      </div>
-      <span class="rm-tag tag-done">Shipped</span>
-    </li>
-    <li class="roadmap-item">
-      <div class="rm-icon rm-done">✓</div>
-      <div class="rm-text">
-        <strong>Sequelize Adapter</strong>
-        <span>Full ORM-compatible condition objects with Op.or / Op.and</span>
-      </div>
-      <span class="rm-tag tag-done">Shipped</span>
-    </li>
-    <li class="roadmap-item">
-      <div class="rm-icon rm-done">✓</div>
-      <div class="rm-text">
-        <strong>MongoDB Adapter</strong>
-        <span>Native $or / $and filter objects — ready to pass to any Mongo driver</span>
-      </div>
-      <span class="rm-tag tag-done">Shipped</span>
-    </li>
-    <li class="roadmap-item">
-      <div class="rm-icon rm-next">→</div>
-      <div class="rm-text">
-        <strong>Elasticsearch Adapter</strong>
-        <span>Query DSL output for full-text and structured search</span>
-      </div>
-      <span class="rm-tag tag-next">In Progress</span>
-    </li>
-    <li class="roadmap-item">
-      <div class="rm-icon rm-next">→</div>
-      <div class="rm-text">
-        <strong>Parenthesis & Nested Expressions</strong>
-        <span>Explicit grouping for complex multi-level logic</span>
-      </div>
-      <span class="rm-tag tag-next">Next</span>
-    </li>
-    <li class="roadmap-item">
-      <div class="rm-icon rm-future">○</div>
-      <div class="rm-text">
-        <strong>Type Inference & Schema Validation</strong>
-        <span>Validate field types against your schema at compile time</span>
-      </div>
-      <span class="rm-tag tag-future">Planned</span>
-    </li>
-    <li class="roadmap-item">
-      <div class="rm-icon rm-future">○</div>
-      <div class="rm-text">
-        <strong>Query Optimizer</strong>
-        <span>Simplify and deduplicate redundant conditions in the AST</span>
-      </div>
-      <span class="rm-tag tag-future">Planned</span>
-    </li>
-    <li class="roadmap-item">
-      <div class="rm-icon rm-future">○</div>
-      <div class="rm-text">
-        <strong>Interactive FlexQL Playground</strong>
-        <span>Live browser-based compiler with real-time adapter output</span>
-      </div>
-      <span class="rm-tag tag-future">Planned</span>
-    </li>
-  </ul>
-</section>
+<div class="sep"></div>
 
-<!-- FOOTER -->
+<!-- CTA -->
+<div class="wrap reveal">
+  <div class="cta">
+    <h2>START <em>COMPILING</em></h2>
+    <p>A real query compiler for modern APIs. Safe, portable, and extensible by design.</p>
+    <div class="cta-btns">
+      <a class="btn-main" href="https://github.com/schart/FlexQL">View on GitHub</a>
+      <a class="btn-outline" href="#architecture">See Architecture</a>
+    </div>
+  </div>
+</div>
+
 <footer>
-  <div class="footer-logo">FlexQL</div>
+  <div class="foot-logo">FLEXQL</div>
   <div>GPL-3.0 © 2025 — Built by <strong style="color:var(--text)">Heja Arslan</strong>, Backend Engineer</div>
-  <a href="https://github.com/schart/FlexQL" style="color:var(--muted);transition:color 0.2s" onmouseover="this.style.color='var(--cyan)'" onmouseout="this.style.color='var(--muted)'">github.com/schart/FlexQL ↗</a>
+  <a class="foot-link" href="https://github.com/schart/FlexQL">github.com/schart/FlexQL ↗</a>
 </footer>
 
 <script>
-  const outputMap = {
-    sql: `<span class="t-comment">// SQL Adapter output</span>
-{
-  <span class="t-cyan">type</span>: <span class="t-amber">'sql'</span>,
-  <span class="t-cyan">payload</span>: {
-    <span class="t-cyan">conditions</span>: <span class="t-amber">'WHERE username = ? AND age > ? OR status = ?'</span>,
-    <span class="t-cyan">values</span>: [<span class="t-amber">"heja"</span>, <span class="t-green">18</span>, <span class="t-amber">"active"</span>]
-  }
+const outputs = {
+  sql: `<span style="color:var(--muted)">// SQL Adapter output</span>
+<span style="color:var(--text)">{</span>
+  <span style="color:var(--blue)">type</span><span style="color:var(--text)">:</span> <span style="color:var(--green)">'sql'</span><span style="color:var(--text)">,</span>
+  <span style="color:var(--blue)">payload</span><span style="color:var(--text)">: {</span>
+    <span style="color:var(--blue)">conditions</span><span style="color:var(--text)">:</span>
+      <span style="color:var(--green)">'WHERE username = ? AND age > ? OR status = ?'</span><span style="color:var(--text)">,</span>
+    <span style="color:var(--blue)">values</span><span style="color:var(--text)">: [</span><span style="color:var(--green)">"heja"</span><span style="color:var(--text)">,</span> <span style="color:var(--amber)">18</span><span style="color:var(--text)">,</span> <span style="color:var(--green)">"active"</span><span style="color:var(--text)">]</span>
+  <span style="color:var(--text)">}</span>
+<span style="color:var(--text)">}</span>
+
+<span style="color:var(--muted)">// Use directly in your query:</span>
+<span style="color:var(--text)">db.query(</span><span style="color:var(--green)">\`SELECT * FROM users \${conditions}\`</span><span style="color:var(--text)">, values)</span>`,
+
+  sequelize: `<span style="color:var(--muted)">// Sequelize Adapter output</span>
+<span style="color:var(--text)">{</span>
+  <span style="color:var(--blue)">type</span><span style="color:var(--text)">:</span> <span style="color:var(--green)">'sequelize'</span><span style="color:var(--text)">,</span>
+  <span style="color:var(--blue)">payload</span><span style="color:var(--text)">: {</span>
+    <span style="color:var(--blue)">where</span><span style="color:var(--text)">: {</span>
+      <span style="color:var(--text)">[</span><span style="color:var(--purple)">Op.or</span><span style="color:var(--text)">]: [</span>
+        <span style="color:var(--text)">{</span>
+          <span style="color:var(--blue)">username</span><span style="color:var(--text)">:</span> <span style="color:var(--green)">"heja"</span><span style="color:var(--text)">,</span>
+          <span style="color:var(--blue)">age</span><span style="color:var(--text)">: {</span> <span style="color:var(--text)">[</span><span style="color:var(--purple)">Op.gt</span><span style="color:var(--text)">]:</span> <span style="color:var(--amber)">18</span> <span style="color:var(--text)">}</span>
+        <span style="color:var(--text)">},</span>
+        <span style="color:var(--text)">{</span> <span style="color:var(--blue)">status</span><span style="color:var(--text)">:</span> <span style="color:var(--green)">"active"</span> <span style="color:var(--text)">}</span>
+      <span style="color:var(--text)">]</span>
+    <span style="color:var(--text)">}</span>
+  <span style="color:var(--text)">}</span>
+<span style="color:var(--text)">}</span>
+
+<span style="color:var(--muted)">// Use directly:</span>
+<span style="color:var(--text)">Model.findAll({</span> <span style="color:var(--blue)">where</span><span style="color:var(--text)">: payload.where })</span>`
+};
+
+const pgout = document.getElementById('pgout');
+const tabs = document.querySelectorAll('.tab[data-t]');
+function setTab(t) {
+  tabs.forEach(b => b.classList.toggle('active', b.dataset.t === t));
+  pgout.innerHTML = outputs[t];
 }
+tabs.forEach(b => b.addEventListener('click', () => setTab(b.dataset.t)));
+setTab('sql');
 
-<span class="t-comment">// Use directly:</span>
-db.query(<span class="t-amber">\`SELECT * FROM users \${conditions}\`</span>, values)`,
+// pipeline animation
+const rows = document.querySelectorAll('#cviz .cv-row');
+let i = 0;
+function next() { if(i < rows.length){ rows[i++].classList.add('show'); setTimeout(next, 360); } }
+setTimeout(next, 700);
 
-    sequelize: `<span class="t-comment">// Sequelize Adapter output</span>
-{
-  <span class="t-cyan">type</span>: <span class="t-amber">'sequelize'</span>,
-  <span class="t-cyan">payload</span>: {
-    <span class="t-cyan">where</span>: {
-      [<span class="t-primary">Op.or</span>]: [
-        {
-          <span class="t-cyan">username</span>: <span class="t-amber">"heja"</span>,
-          <span class="t-cyan">age</span>: { [<span class="t-primary">Op.gt</span>]: <span class="t-green">18</span> }
-        },
-        { <span class="t-cyan">status</span>: <span class="t-amber">"active"</span> }
-      ]
-    }
-  }
-}
-
-<span class="t-comment">// Use directly:</span>
-Model.findAll({ <span class="t-cyan">where</span>: conditions.where })`,
-
-    mongo: `<span class="t-comment">// MongoDB Adapter output</span>
-{
-  <span class="t-cyan">type</span>: <span class="t-amber">'mongodb'</span>,
-  <span class="t-primary">$or</span>: [
-    {
-      <span class="t-cyan">username</span>: <span class="t-amber">"heja"</span>,
-      <span class="t-cyan">age</span>: { <span class="t-primary">$gt</span>: <span class="t-green">18</span> }
-    },
-    { <span class="t-cyan">status</span>: <span class="t-amber">"active"</span> }
-  ]
-}
-
-<span class="t-comment">// Use directly:</span>
-collection.find(result)  <span class="t-comment">// ✅ ready</span>`,
-  };
-
-  const tabs = document.querySelectorAll('.pg-tab');
-  const output = document.getElementById('pg-output');
-
-  function setActive(tab) {
-    tabs.forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-    output.innerHTML = outputMap[tab.dataset.target];
-  }
-
-  tabs.forEach(tab => tab.addEventListener('click', () => setActive(tab)));
-  output.innerHTML = outputMap.sql;
-
-  // Scroll reveal
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(e => {
-      if (e.isIntersecting) {
-        e.target.style.opacity = '1';
-        e.target.style.transform = 'translateY(0)';
-      }
-    });
-  }, { threshold: 0.1 });
-
-  document.querySelectorAll('section').forEach(s => {
-    s.style.opacity = '0';
-    s.style.transform = 'translateY(24px)';
-    s.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-    observer.observe(s);
-  });
+// scroll reveal
+const obs = new IntersectionObserver(es => es.forEach(e => { if(e.isIntersecting) e.target.classList.add('show'); }), {threshold:.07});
+document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
 </script>
 </body>
 </html>
