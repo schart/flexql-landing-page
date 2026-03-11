@@ -243,14 +243,157 @@ footer{border-top:1px solid var(--border);padding:28px 72px;display:flex;justify
 .foot-logo{font-family:var(--mono);font-weight:700;color:var(--amber);font-size:.9rem}
 .foot-link{transition:color .2s}.foot-link:hover{color:var(--amber)}
 @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
-@media(max-width:900px){
-  nav{padding:0 20px}.nav-links{display:none}
-  .hero{grid-template-columns:1fr}.hero-right{display:none}
-  .hero-left{padding:48px 24px 60px}
-  .compiler-callout,.arch-substeps,.arch-branches,.adapters-row,.pg-wrap{grid-template-columns:1fr}
-  .pg-panel{border-right:none;border-bottom:1px solid var(--border)}
-  .cta{padding:48px 24px}
-  footer{flex-direction:column;gap:12px;text-align:center;padding:24px}
+
+/* ── TABLET (≤1024px) ── */
+@media(max-width:1024px){
+  .hero-left{padding:70px 40px 70px 48px}
+  .hero-right{padding:48px 40px}
+  .wrap{padding:80px 24px}
+  .adapters-row{grid-template-columns:1fr 1fr}
+}
+
+/* ── MOBILE (≤768px) ── */
+@media(max-width:768px){
+  /* NAV */
+  nav{padding:0 20px;height:50px}
+  .nav-links{display:none}
+  .nav-logo{font-size:.9rem}
+  .nav-gh{padding:6px 14px;font-size:.7rem}
+
+  /* HERO — single column */
+  .hero{
+    grid-template-columns:1fr;
+    min-height:auto;
+  }
+  .hero-right{display:none}
+  .hero-left{
+    padding:72px 20px 52px;
+  }
+  .hero-left::after{display:none}
+
+  .compiler-badge{font-size:.62rem;padding:6px 12px}
+
+  h1{
+    font-size:clamp(2.8rem,12vw,4.2rem);
+    margin-bottom:20px;
+  }
+
+  .hero-sub{
+    font-size:.9rem;
+    max-width:100%;
+    margin-bottom:32px;
+  }
+
+  .hero-btns{flex-direction:column;gap:10px}
+  .btn-main,.btn-outline{width:100%;text-align:center;padding:14px 20px}
+
+  .hero-stats{
+    margin-top:36px;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    border-radius:10px;
+  }
+  .hero-stat{
+    border-right:1px solid var(--border);
+    border-bottom:1px solid var(--border);
+    padding:14px 0;
+  }
+  .hero-stat:nth-child(2){border-right:none}
+  .hero-stat:nth-child(3){border-bottom:none}
+  .hero-stat:nth-child(4){border-right:none;border-bottom:none}
+  .hs-val{font-size:1.1rem}
+
+  /* SECTIONS */
+  .wrap{padding:60px 20px}
+
+  h2{font-size:clamp(2rem,9vw,2.8rem);margin-bottom:14px}
+
+  .desc{font-size:.88rem;margin-bottom:36px;max-width:100%}
+
+  /* COMPILER CALLOUT */
+  .compiler-callout{
+    grid-template-columns:1fr;
+    margin-bottom:36px;
+  }
+  .cc-half{padding:24px 20px}
+  .cc-half h3{font-size:.75rem}
+  .cc-half p,.cc-half ul li{font-size:.82rem}
+
+  /* ARCHITECTURE */
+  .arch-flow::before{left:19px}
+  .arch-gutter{width:40px}
+  .arch-gutter-num{width:22px;height:22px;font-size:.56rem}
+  .arch-body{padding:16px 16px;margin-bottom:6px}
+  .arch-body-title{font-size:.85rem}
+  .arch-body-sub{font-size:.77rem}
+  .arch-substeps{grid-template-columns:1fr}
+  .arch-sub{padding:10px 12px}
+  .arch-branches{grid-template-columns:1fr}
+  .arch-branch{padding:10px 12px}
+  .adapters-row{grid-template-columns:1fr 1fr;gap:8px}
+  .adapter-chip{padding:10px 10px}
+  .adapter-chip-name{font-size:.76rem}
+
+  /* PLAYGROUND */
+  .pg-wrap{
+    grid-template-columns:1fr;
+    border-radius:14px;
+  }
+  .pg-panel{
+    border-right:none;
+    border-bottom:1px solid var(--border);
+  }
+  .pg-panel:last-child{border-bottom:none}
+  .pg-top{
+    flex-direction:column;
+    align-items:flex-start;
+    gap:10px;
+    padding:12px 16px;
+  }
+  .pg-body{
+    padding:16px;
+    font-size:.72rem;
+    min-height:auto;
+  }
+  .tabs{gap:6px}
+  .tab{padding:5px 11px;font-size:.68rem}
+
+  /* SYNTAX TABLE — make it scrollable */
+  .stbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:12px;border:1px solid var(--border)}
+  .stbl{border:none;border-radius:0;font-size:.78rem;min-width:560px}
+  .stbl th{font-size:.6rem;padding:9px 12px}
+  .stbl td{padding:9px 12px}
+
+  /* ROADMAP */
+  .rm-row{padding:12px 14px;gap:10px;flex-wrap:wrap}
+  .rm-body strong{font-size:.82rem}
+  .rm-body span{font-size:.72rem}
+  .rm-pill{font-size:.6rem}
+
+  /* CTA */
+  .cta{padding:48px 20px;border-radius:14px}
+  .cta p{font-size:.88rem}
+  .cta-btns{flex-direction:column;align-items:center;gap:10px}
+  .cta-btns .btn-main,.cta-btns .btn-outline{width:100%;max-width:320px;text-align:center}
+
+  /* FOOTER */
+  footer{
+    flex-direction:column;
+    gap:10px;
+    text-align:center;
+    padding:24px 20px;
+    font-size:.75rem;
+  }
+}
+
+/* ── SMALL MOBILE (≤390px) ── */
+@media(max-width:390px){
+  h1{font-size:2.6rem}
+  .hero-left{padding:68px 16px 44px}
+  .wrap{padding:52px 16px}
+  .cc-half{padding:20px 16px}
+  .arch-body{padding:14px 12px}
+  .pg-body{font-size:.68rem}
 }
 </style>
 </head>
@@ -549,7 +692,7 @@ footer{border-top:1px solid var(--border);padding:28px 72px;display:flex;justify
   <div class="tag">Language Reference</div>
   <h2>SYNTAX<br/><em>REFERENCE</em></h2>
   <p class="desc">FlexQL's syntax is intentionally compact. Every token has a defined role in the compilation pipeline.</p>
-  <table class="stbl">
+  <div class="stbl-wrap"><table class="stbl">
     <thead>
       <tr><th>Element</th><th>Role in Pipeline</th><th>Examples</th><th>Notes</th></tr>
     </thead>
@@ -585,7 +728,7 @@ footer{border-top:1px solid var(--border);padding:28px 72px;display:flex;justify
         <td style="color:var(--muted);font-size:.78rem">String, number, boolean, date</td>
       </tr>
     </tbody>
-  </table>
+  </table></div>
   <div style="margin-top:14px;padding:13px 18px;background:rgba(240,168,0,.05);border:1px solid rgba(240,168,0,.15);border-radius:8px;font-size:.81rem;color:var(--muted)">
     ⚠ <strong style="color:var(--text)">Spaces cannot be used as separators.</strong> Use <code style="font-family:var(--mono);color:var(--amber)">;</code> for AND and <code style="font-family:var(--mono);color:var(--amber)">,</code> for OR. Both are configurable.
   </div>
