@@ -6,44 +6,51 @@
 <title>FlexQL — Tek filtre sözdizimi, her veritabanı</title>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#fbfaf7;--sf:#fff;--tx:#16171c;--mu:#5d6270;--bd:#e4e1d8;--ac:#e8590c;--ac2:#0b7285;--code:#14151a;--codetx:#e8e9ee;--g:#2b8a3e;
+:root{--bg:#050914;--sf:#0b1425;--tx:#eef6ff;--mu:#91a4bf;--bd:#1b3356;--ac:#39a7ff;--ac2:#8068ff;--code:#030711;--codetx:#e7f2ff;--g:#41e0a0;
 --sans:'Inter',system-ui,sans-serif;--disp:'Bricolage Grotesque','Inter',sans-serif;--mono:'IBM Plex Mono',ui-monospace,monospace;color-scheme:light}
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0c0d11;--sf:#14161c;--tx:#eceef4;--mu:#9097a8;--bd:#242836;--ac:#ff8a3d;--ac2:#3bc9db;--code:#08090c;--g:#69db7c;color-scheme:dark}}
 :root[data-theme="dark"]{--bg:#0c0d11;--sf:#14161c;--tx:#eceef4;--mu:#9097a8;--bd:#242836;--ac:#ff8a3d;--ac2:#3bc9db;--code:#08090c;--g:#69db7c;color-scheme:dark}
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 html{scroll-behavior:smooth;scroll-padding-top:calc(env(safe-area-inset-top,0px) + 70px)}
 *{box-sizing:border-box;margin:0}
-body{background:var(--bg);color:var(--tx);font-family:var(--sans);line-height:1.65;overflow-x:hidden}
+body{background:var(--bg);color:var(--tx);font-family:var(--sans);line-height:1.65;overflow-x:hidden;background-attachment:fixed}
+body{--mx:50%;--my:18%;background-image:linear-gradient(color-mix(in srgb,var(--bd) 18%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb,var(--bd) 18%,transparent) 1px,transparent 1px),radial-gradient(600px circle at var(--mx) var(--my),color-mix(in srgb,var(--ac) 9%,transparent),transparent 62%);background-size:44px 44px,44px 44px,auto}
 a{color:inherit;text-decoration:none}
 .w{max-width:1100px;margin:0 auto;padding:0 22px}
 nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--bd)}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:8}
 nav .w{display:flex;align-items:center;justify-content:space-between;height:58px}
 .logo{font-family:var(--disp);font-weight:800;font-size:1.3rem}.logo b{color:var(--ac)}
+.logo{transition:transform .25s ease}.logo:hover{transform:translateY(-2px) rotate(-2deg)}
 .nl{display:flex;gap:26px;font-size:.88rem;color:var(--mu)}.nl a:hover{color:var(--tx)}
-.btn{display:inline-block;padding:11px 20px;border-radius:9px;font-weight:600;font-size:.9rem;border:1px solid var(--bd);background:var(--sf);cursor:pointer;font-family:var(--sans);color:var(--tx)}
-.btn.p{background:var(--ac);border-color:var(--ac);color:#fff}
-.hero{padding:84px 0 56px;text-align:center}
+.langs{display:flex;gap:4px;margin-left:10px}.lang{border:1px solid transparent;background:transparent;border-radius:7px;padding:5px 7px;font-size:1rem;cursor:pointer;opacity:.55;transition:.2s}.lang:hover,.lang.on{opacity:1;background:var(--sf);border-color:var(--bd)}
+.btn{display:inline-block;padding:11px 20px;border-radius:9px;font-weight:600;font-size:.9rem;border:1px solid var(--bd);background:var(--sf);cursor:pointer;font-family:var(--sans);color:var(--tx);transition:transform .25s ease,box-shadow .25s ease,background .25s ease;position:relative;overflow:hidden}.btn:after{content:"";position:absolute;inset:0;width:35%;background:linear-gradient(90deg,transparent,#fff8,transparent);transform:translateX(-180%) skewX(-18deg)}.btn:hover:after{animation:sweep .7s ease}.btn:hover{transform:translateY(-3px);box-shadow:0 12px 25px -16px var(--tx)}
+.btn.p{background:var(--ac);border-color:var(--ac);color:#fff;box-shadow:0 10px 28px -14px var(--ac)}.btn.p:hover{box-shadow:0 16px 32px -12px var(--ac)}
+.hero{padding:84px 0 56px;text-align:center;position:relative}.hero:before,.hero:after{content:"";position:absolute;z-index:-1;border-radius:50%;filter:blur(2px);opacity:.22;pointer-events:none}.hero:before{width:300px;height:300px;background:var(--ac);top:30px;left:8%;animation:drift 9s ease-in-out infinite}.hero:after{width:220px;height:220px;background:var(--ac2);right:10%;top:160px;animation:drift 11s ease-in-out -3s infinite reverse}
+.hero>*{animation:rise .75s both}.hero .pill{animation-delay:.05s}.hero h1{animation-delay:.12s}.hero .lead{animation-delay:.2s}.hero .inst{animation-delay:.28s}.hero .row{animation-delay:.36s}.hero .demo{animation-delay:.44s}
 .pill{display:inline-block;font-family:var(--mono);font-size:.72rem;padding:5px 12px;border:1px solid var(--bd);border-radius:99px;color:var(--mu);background:var(--sf);margin-bottom:22px}
+.pill:before{content:"";display:inline-block;width:6px;height:6px;margin:0 7px 1px 0;border-radius:50%;background:var(--g);box-shadow:0 0 0 0 color-mix(in srgb,var(--g) 35%,transparent);animation:ping 2s infinite}
+.hook{font-family:var(--mono);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ac);margin:0 auto 16px;display:flex;align-items:center;justify-content:center;gap:10px}.hook:before,.hook:after{content:"";height:1px;width:34px;background:linear-gradient(90deg,transparent,var(--ac))}.hook:after{background:linear-gradient(90deg,var(--ac),transparent)}
 h1{font-family:var(--disp);font-weight:800;font-size:clamp(2.5rem,7vw,5rem);line-height:1.02;letter-spacing:-.03em;max-width:880px;margin:0 auto 20px}
-h1 em{font-style:normal;color:var(--ac)}
+h1 em{font-style:normal;color:var(--ac);background:linear-gradient(110deg,var(--ac) 20%,#ffb347 45%,var(--ac2) 72%,var(--ac) 90%);background-size:220% auto;background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:shimmer 5s linear infinite;position:relative}h1 em:after{content:"";position:absolute;left:0;right:0;bottom:-5px;height:5px;background:var(--ac);opacity:.22;border-radius:99px;filter:blur(3px);animation:underline 2.8s ease-in-out infinite}
 .lead{color:var(--mu);font-size:1.12rem;max-width:620px;margin:0 auto 30px}
 .inst{display:inline-flex;align-items:center;gap:14px;background:var(--code);color:var(--codetx);font-family:var(--mono);font-size:.9rem;padding:12px 14px 12px 20px;border-radius:11px;max-width:100%}
 .inst span{overflow-x:auto;white-space:nowrap}.inst button{font-family:var(--mono);font-size:.72rem;background:#ffffff1c;color:inherit;border:0;border-radius:6px;padding:6px 10px;cursor:pointer}
 .row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:22px}
-.demo{margin:50px auto 0;max-width:900px;display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--bd);border-radius:16px;overflow:hidden;background:var(--sf);text-align:left;box-shadow:0 20px 60px -30px #0004}
+.demo{margin:50px auto 0;max-width:900px;display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--bd);border-radius:16px;overflow:hidden;background:var(--sf);text-align:left;box-shadow:0 20px 60px -30px #0004;transition:transform .35s ease,box-shadow .35s ease;position:relative}.demo:before{content:"";position:absolute;inset:0;height:2px;background:linear-gradient(90deg,transparent,var(--ac),var(--ac2),transparent);transform:translateX(-100%);animation:scan 4s ease-in-out infinite;z-index:2}.demo:hover{transform:translateY(-7px) rotateX(1deg);box-shadow:0 28px 70px -28px #0006}
 .demo>div{padding:20px;min-width:0}.demo>div:first-child{border-right:1px solid var(--bd)}
 .lb{font-family:var(--mono);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--mu);margin-bottom:10px}
 .q{font-family:var(--mono);font-size:.92rem;padding:13px 14px;background:var(--bg);border:1px solid var(--bd);border-radius:9px;overflow-x:auto;white-space:nowrap}
 .k1{color:var(--ac2)}.k2{color:var(--ac)}.k3{color:var(--g)}
 .demo pre,.cd{font-family:var(--mono);font-size:.8rem;background:var(--code);color:var(--codetx);padding:16px;border-radius:10px;overflow-x:auto;line-height:1.7}
 .demo p{font-size:.8rem;color:var(--mu);margin-top:12px}
+.adapter-preview{max-width:900px;margin:14px auto 0;display:grid;grid-template-columns:repeat(5,1fr);gap:8px;text-align:left}.adapter-preview>div{padding:12px 11px;border:1px solid var(--bd);border-radius:10px;background:color-mix(in srgb,var(--sf) 82%,var(--ac) 18%);transition:transform .25s ease,border-color .25s ease}.adapter-preview>div:hover{transform:translateY(-4px);border-color:var(--ac)}.adapter-preview b{display:block;color:var(--ac);font:600 .68rem var(--mono);margin-bottom:7px}.adapter-preview code{display:block;color:var(--mu);font: .64rem/1.4 var(--mono);white-space:normal}
 section{padding:78px 0}
 .tg{font-family:var(--mono);font-size:.72rem;color:var(--ac);letter-spacing:.14em;text-transform:uppercase;margin-bottom:12px}
 h2{font-family:var(--disp);font-weight:800;font-size:clamp(1.9rem,4.4vw,3rem);line-height:1.08;letter-spacing:-.02em;margin-bottom:14px;max-width:760px}
 .sub{color:var(--mu);max-width:620px;margin-bottom:38px}
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-.card{background:var(--sf);border:1px solid var(--bd);border-radius:14px;padding:22px}
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:14px;padding:22px;transition:transform .3s ease,box-shadow .3s ease,border-color .3s ease}.card:hover{transform:translateY(-6px);border-color:color-mix(in srgb,var(--ac) 55%,var(--bd));box-shadow:0 18px 35px -26px var(--tx)}
 .card h3{font-family:var(--disp);font-size:1.12rem;margin-bottom:6px}.card p{font-size:.9rem;color:var(--mu)}
 .card .ic{font-size:1.5rem;margin-bottom:10px}
 .vs{display:grid;grid-template-columns:1fr 1fr;gap:14px}
@@ -65,35 +72,51 @@ h2{font-family:var(--disp);font-weight:800;font-size:clamp(1.9rem,4.4vw,3rem);li
 .cta .inst{background:#ffffff14}
 footer{padding:34px 0;border-top:1px solid var(--bd);font-size:.82rem;color:var(--mu)}
 footer .w{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
-@media(max-width:820px){.nl{display:none}.demo,.vs,.sec{grid-template-columns:1fr}.demo>div:first-child{border-right:0;border-bottom:1px solid var(--bd)}.grid,.uc{grid-template-columns:1fr}.hero{padding-top:56px}section{padding:56px 0}}
+@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes drift{0%,100%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(22px,-18px,0) scale(1.08)}}
+@keyframes shimmer{to{background-position:220% center}}@keyframes scan{0%{transform:translateX(-100%);opacity:0}20%,75%{opacity:1}100%{transform:translateX(100%);opacity:0}}@keyframes sweep{to{transform:translateX(420%) skewX(-18deg)}}@keyframes ping{70%,100%{box-shadow:0 0 0 7px transparent}}@keyframes underline{50%{transform:scaleX(.72);opacity:.45}}
+@keyframes reveal{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+.reveal{opacity:0}.reveal.visible{animation:reveal .7s cubic-bezier(.2,.7,.2,1) forwards}
+.q{position:relative}.q:after{content:"";display:inline-block;width:6px;height:1em;margin-left:5px;vertical-align:-2px;background:var(--ac);animation:blink 1s steps(2) infinite}@keyframes blink{50%{opacity:0}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}.reveal{opacity:1}}
+@media(max-width:820px){.nl{display:none}.demo,.vs,.sec{grid-template-columns:1fr}.demo>div:first-child{border-right:0;border-bottom:1px solid var(--bd)}.grid,.uc{grid-template-columns:1fr}.adapter-preview{grid-template-columns:repeat(2,1fr)}.hero{padding-top:56px}section{padding:56px 0}}
 </style>
 </head>
 <body>
 <nav><div class="w"><a class="logo" href="#">Flex<b>QL</b></a>
-<div class="nl"><a href="#neden">Neden</a><a href="#adaptor">Adaptörler</a><a href="#kullanim">Kullanım alanları</a><a href="#guvenlik">Güvenlik</a></div>
+<div class="nl"><a href="#neden" data-i18n="why">Neden</a><a href="#adaptor" data-i18n="adapters">Adaptörler</a><a href="#kullanim" data-i18n="useCases">Kullanım alanları</a><a href="#guvenlik" data-i18n="security">Güvenlik</a></div>
+<div class="langs" aria-label="Language selector"><button class="lang on" data-lang="tr" aria-label="Türkçe">🇹🇷</button><button class="lang" data-lang="en" aria-label="English">🇬🇧</button><button class="lang" data-lang="es" aria-label="Español">🇪🇸</button></div>
 <a class="btn" href="https://github.com/schart/FlexQL">GitHub ↗</a></div></nav>
 
 <header class="hero"><div class="w">
 <div class="pill">npm i @xeja/flexql · TypeScript · ISC</div>
-<h1>Filtre yaz. <em>Her veritabanına</em> derle.</h1>
-<p class="lead">API'nizdeki filtre parse kodunu her endpoint'te tekrar yazmayın. Tek bir okunabilir sözdizimi; SQL, Sequelize, MongoDB, Elasticsearch ve TypeORM için güvenli sorgu çıktısı.</p>
-<div class="inst"><span id="cmd">npm install @xeja/flexql</span><button onclick="cp()" id="cb">kopyala</button></div>
-<div class="row"><a class="btn p" href="https://github.com/schart/FlexQL">GitHub'da incele</a><a class="btn" href="#adaptor">Kodu gör</a></div>
+<div class="hook" data-i18n="hook">ONE FILTER · ANY BACKEND</div>
+<h1 data-i18n="headline">Tek filtre dili. <em>Her backend’e hazır.</em></h1>
+<p class="lead" data-i18n="lead">API'leriniz için tek bir filtre dili. FlexQL, sorguları SQL, Sequelize, MongoDB, Elasticsearch ve TypeORM çıktısına güvenli şekilde derler.</p>
+<div class="inst"><span id="cmd">npm install @xeja/flexql</span><button onclick="cp()" id="cb" data-i18n="copy">kopyala</button></div>
+<div class="row"><a class="btn p" href="https://github.com/schart/FlexQL" data-i18n="viewGithub">GitHub'da incele</a><a class="btn" href="#adaptor" data-i18n="seeCode">Kodu gör</a></div>
 
 <div class="demo">
 <div><div class="lb">Gelen istek</div>
-<div class="q"><span class="k1">username</span><span class="k2">==</span><span class="k3">ali</span>;<span class="k1">age</span><span class="k2">&gt;</span>18,<span class="k1">status</span><span class="k2">==</span><span class="k3">active</span></div>
+<div class="q">(<span class="k1">status</span><span class="k2">==</span><span class="k3">active</span>,<span class="k1">role</span><span class="k2">!=</span><span class="k3">guest</span>);<span class="k1">age</span><span class="k2">&gt;=</span>18,<span class="k1">price</span><span class="k2">&lt;</span>500000</div>
 <p>Query string'den gelen tek satır. <b>;</b> = AND, <b>,</b> = OR. Sayı ve boolean otomatik tanınır.</p></div>
 <div><div class="lb">SQL çıktısı</div>
 <pre>{
   type: "sql",
   payload: {
     conditions:
-      "( username = ? AND age > ? )
-       OR status = ?",
-    values: ["ali", 18, "active"]
+      "( status = ? OR role != ? )
+       AND ( age >= ? OR price < ? )",
+    values: ["active", "guest", 18, 500000]
   }
 }</pre></div>
+</div>
+<div class="adapter-preview" aria-label="Adapter outputs">
+<div><b>SQL</b><code>WHERE (status = ? OR role != ?)</code></div>
+<div><b>MongoDB</b><code>$or · $ne · $gte · $lt</code></div>
+<div><b>Sequelize</b><code>Op.or · Op.ne · Op.gte</code></div>
+<div><b>Elasticsearch</b><code>bool.should · range</code></div>
+<div><b>TypeORM</b><code>Brackets · parameters</code></div>
 </div></div></header>
 
 <section id="neden"><div class="w">
@@ -183,6 +206,17 @@ var tb=document.getElementById('tabs'),cd=document.getElementById('code');
 function show(k){cd.textContent=A[k];[].forEach.call(tb.children,function(b){b.classList.toggle('on',b.dataset.k===k)})}
 Object.keys(A).forEach(function(k){var b=document.createElement('button');b.className='tab';b.dataset.k=k;b.textContent=k;b.onclick=function(){show(k)};tb.appendChild(b)});
 show('sql');
+document.querySelectorAll('section,.cta,.card,.demo').forEach(function(el){el.classList.add('reveal')});
+var io=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting){e.target.classList.add('visible');io.unobserve(e.target)}})},{threshold:.12});
+document.querySelectorAll('.reveal').forEach(function(el){io.observe(el)});
+document.addEventListener('pointermove',function(e){document.body.style.setProperty('--mx',e.clientX+'px');document.body.style.setProperty('--my',e.clientY+'px')},{passive:true});
+document.querySelectorAll('.grid .card,.uc .card').forEach(function(card){card.addEventListener('pointermove',function(e){if(matchMedia('(prefers-reduced-motion: reduce)').matches||innerWidth<821)return;var r=card.getBoundingClientRect(),x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;card.style.transform='perspective(700px) rotateX('+(-y*5)+'deg) rotateY('+(x*5)+'deg) translateY(-6px)'}) ;card.addEventListener('pointerleave',function(){card.style.transform=''})});
+var L={tr:{why:'Neden',adapters:'Adaptörler',useCases:'Kullanım alanları',security:'Güvenlik',hook:'ONE FILTER · ANY BACKEND',headline:'Tek filtre dili. <em>Her backend’e hazır.</em>',lead:'API\'leriniz için tek bir filtre dili. FlexQL, sorguları SQL, Sequelize, MongoDB, Elasticsearch ve TypeORM çıktısına güvenli şekilde derler.',copy:'kopyala',viewGithub:'GitHub\'da incele',seeCode:'Kodu gör'},en:{why:'Why FlexQL',adapters:'Adapters',useCases:'Use cases',security:'Security',hook:'ONE FILTER · ANY BACKEND',headline:'One filter language. <em>Ready for every backend.</em>',lead:'One filter language for your APIs. FlexQL safely compiles queries into SQL, Sequelize, MongoDB, Elasticsearch, and TypeORM output.',copy:'copy',viewGithub:'View on GitHub',seeCode:'See the code'},es:{why:'Por qué FlexQL',adapters:'Adaptadores',useCases:'Casos de uso',security:'Seguridad',hook:'UN FILTRO · CUALQUIER BACKEND',headline:'Un solo lenguaje. <em>Listo para cualquier backend.</em>',lead:'Un solo lenguaje de filtros para tus APIs. FlexQL compila consultas de forma segura para SQL, Sequelize, MongoDB, Elasticsearch y TypeORM.',copy:'copiar',viewGithub:'Ver en GitHub',seeCode:'Ver el código'}};
+var F={en:{tg:['Why FlexQL','How it works','Adapters','Use cases','Security','Syntax'],h2:['Stop writing the same filter code in every endpoint','A compiler, not a string parser','The same filter for any backend','Filtering is useful everywhere','You decide what can be filtered','Small, but sufficient'],sub:['Filtering is a common backend need, usually solved with manual, untested code that can introduce SQL injection risks.','Input is never executed; it becomes tokens, then an AST, then a target query. This makes it auditable and portable.','All adapters use the same expression. Only the adapter changes.','Any product that accepts user filters faces the same problem. FlexQL turns it into one library call.','Block sensitive columns and define allowed operators per column. Invalid requests stop at compile time.','Separators are configurable. Use parentheses for nested groups.'],cardh:['Readable syntax','Parameterized SQL','Column protection','5 adapters, one language','Nested expressions','TypeScript','REST / GraphQL APIs','Admin panels','Listings and e-commerce','Multi-tenant SaaS','Database migrations','Tools and automation'],cardp:['Understandable even in a URL.','Values return separately from conditions.','Disable sensitive columns and restrict operators.','SQL, Sequelize, MongoDB, Elasticsearch, TypeORM.','Group expressions with parentheses.','Type definitions are ready.','Turn filter parameters into safe queries.','Build table filters without custom queries.','Support price, category and featured filters.','Open safe filtering for customers.','Keep your filter layer while changing databases.','Give internal tools and AI agents a validated filter language.'],lb:['Incoming request','SQL output']},es:{tg:['Por qué FlexQL','Cómo funciona','Adaptadores','Casos de uso','Seguridad','Sintaxis'],h2:['Deja de escribir el mismo filtro en cada endpoint','Un compilador, no un parser de texto','El mismo filtro para cualquier backend','Filtrar es útil en cualquier lugar','Tú decides qué se puede filtrar','Pequeño, pero suficiente'],sub:['Filtrar es una necesidad común del backend, normalmente resuelta con código manual y sin pruebas que puede introducir riesgos de inyección SQL.','La entrada nunca se ejecuta: se convierte en tokens, después en un AST y finalmente en una consulta. Así es auditable y portable.','Todos los adaptadores usan la misma expresión. Solo cambia el adaptador.','Cualquier producto que acepta filtros de usuario enfrenta el mismo problema. FlexQL lo convierte en una llamada de librería.','Bloquea columnas sensibles y define operadores permitidos por columna. Las solicitudes inválidas se detienen al compilar.','Los separadores son configurables. Usa paréntesis para grupos anidados.'],cardh:['Sintaxis legible','SQL parametrizado','Protección de columnas','5 adaptadores, un lenguaje','Expresiones anidadas','TypeScript','APIs REST / GraphQL','Paneles de administración','Anuncios y comercio','SaaS multiinquilino','Migraciones de base de datos','Herramientas y automatización'],cardp:['Comprensible incluso dentro de una URL.','Los valores regresan separados de las condiciones.','Desactiva columnas sensibles y limita operadores.','SQL, Sequelize, MongoDB, Elasticsearch y TypeORM.','Agrupa expresiones con paréntesis.','Las definiciones de tipos están listas.','Convierte parámetros de filtro en consultas seguras.','Crea filtros de tablas sin consultas personalizadas.','Admite precio, categoría y destacados.','Ofrece filtros seguros a tus clientes.','Cambia de base de datos sin cambiar el filtro.','Da a herramientas y agentes de IA un lenguaje validado.'],lb:['Solicitud entrante','Salida SQL']}};
+function setList(selector,values){document.querySelectorAll(selector).forEach(function(el,i){if(values[i])el.textContent=values[i]})}
+var native={tg:Array.from(document.querySelectorAll('.tg'),function(e){return e.textContent}),h2:Array.from(document.querySelectorAll('section h2'),function(e){return e.textContent}),sub:Array.from(document.querySelectorAll('section .sub'),function(e){return e.textContent}),cardh:Array.from(document.querySelectorAll('.grid .card h3,.uc .card h3'),function(e){return e.textContent}),cardp:Array.from(document.querySelectorAll('.grid .card p,.uc .card p'),function(e){return e.textContent}),lb:Array.from(document.querySelectorAll('.demo .lb'),function(e){return e.textContent}),steps:Array.from(document.querySelectorAll('.steps span'),function(e){return e.textContent})};
+function applyFullLanguage(code){var p=code==='tr'?native:F[code];setList('.tg',p.tg);setList('section h2',p.h2);setList('section .sub',p.sub);setList('.grid .card h3,.uc .card h3',p.cardh);setList('.grid .card p,.uc .card p',p.cardp);setList('.demo .lb',p.lb);setList('.demo p',code==='en'?['One line from the query string. ; means AND, , means OR. Numbers and booleans are detected automatically.']:code==='es'?['Una línea desde la query string. ; significa AND, , significa OR. Los números y booleanos se detectan automáticamente.']:['Query string’den gelen tek satır. ; = AND, , = OR. Sayı ve boolean otomatik tanınır.']);setList('.steps span',code==='tr'?p.steps:['Query string','Lexer','Parser','AST','Adapter output']);setList('.vs .card h3',code==='en'?['Manual filtering','With FlexQL']:code==='es'?['Filtrado manual','Con FlexQL']:['Elle yazılan filtre','FlexQL ile']);setList('.vs li',code==='en'?['Separate parser logic for every endpoint','String concatenation and injection risk','Rewrite everything when the database changes','Unclear which columns can be filtered','One parse() call','Values are always separate parameters','Change the adapter, keep the filter','Column and operator rules in one place']:code==='es'?['Lógica de parseo distinta en cada endpoint','Concatenación de strings y riesgo de inyección','Reescribe todo al cambiar la base de datos','No está claro qué columnas se pueden filtrar','Una sola llamada a parse()','Los valores siempre son parámetros separados','Cambia el adaptador, conserva el filtro','Reglas de columnas y operadores en un solo lugar']:['Her endpoint için ayrı parse mantığı','String birleştirme, injection riski','Veritabanı değişince her şeyi yeniden yaz','Hangi kolonun filtrelenebileceği belirsiz','Tek parse() çağrısı','Değerler her zaman ayrı parametre','Adaptörü değiştir, filtre aynı kalsın','Kolon ve operatör kuralları tek yerde']);setList('.tbl td:nth-child(2)',code==='en'?['equals','not equal','greater / less','greater or equal / less or equal','OR','AND','nested group']:code==='es'?['igual a','distinto de','mayor / menor','mayor o igual / menor o igual','OR','AND','grupo anidado']:['eşittir','eşit değildir','büyük / küçük','büyük eşit / küçük eşit','OR','AND','iç içe grup']);setList('.cta h2,.cta p',code==='en'?['Solve filtering once','Install it, call parse(), and let the adapter handle the rest.']:code==='es'?['Resuelve el filtrado una vez','Instálalo, llama a parse() y deja que el adaptador haga el resto.']:['Filtre katmanını bir kez çözün','Kurun, bir parse() çağırın, gerisini adaptör halletsin.']);setList('.cta .btn',code==='en'?['Star on GitHub']:code==='es'?['Dar una estrella en GitHub']:['GitHub’a yıldız ver']);setList('footer a',code==='en'?['github.com/schart/FlexQL ↗']:code==='es'?['github.com/schart/FlexQL ↗']:['github.com/schart/FlexQL ↗'])}
+document.querySelectorAll('.lang').forEach(function(button){button.addEventListener('click',function(){var lang=L[button.dataset.lang];document.documentElement.lang=button.dataset.lang;document.querySelectorAll('[data-i18n]').forEach(function(el){el.innerHTML=lang[el.dataset.i18n]});applyFullLanguage(button.dataset.lang);document.querySelectorAll('.lang').forEach(function(b){b.classList.toggle('on',b===button)})})});
 </script>
 </body>
 </html>
